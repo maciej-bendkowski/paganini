@@ -44,7 +44,7 @@ class TestTuner(unittest.TestCase):
 
     def test_singular_trees(self):
         """ Singular tuning of plane trees
-            T = 1 + Z * SEQ(T)."""
+            T = Z * SEQ(T)."""
 
         spec = Specification()
         z, T = spec.variable(), spec.variable()
@@ -84,7 +84,7 @@ class TestTuner(unittest.TestCase):
 
     def test_singular_polya_trees(self):
         """ Singular tuning of Polya trees
-            T = 1 + Z * SEQ(T)."""
+            T = Z * SEQ(T)."""
 
         spec = Specification()
         z, T = spec.variable(), spec.variable()
@@ -97,7 +97,7 @@ class TestTuner(unittest.TestCase):
 
     def test_singular_custom_trees(self):
         """ Singular tuning of some custom trees defined by
-            T = 1 + Z * SEQ_>=2(T)."""
+            T = Z + Z * SEQ_>=2(T)."""
 
         params = Params(Type.ALGEBRAIC)
         params.max_iters = 100 # required
