@@ -80,7 +80,7 @@ self.assertAlmostEqual(z.value, 0.5, 5)
 ```
 
 ```
-""" Singular tuning of unlabelled functional graphs.
+""" Unlabelled functional graphs.
     F = MSet(K)
     K = CYC(U)
     U = Z * MSet(U)."""
