@@ -1,2 +1,4 @@
-__version__ = "1.0.0"
-from paganini.tuner import *
+__version__ = "1.1.0"
+
+from paganini.expressions import *
+from paganini.specification import *

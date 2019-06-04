@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "paganini",
-    version = "1.0.0",
+    version = "1.1.0",
 
     author = "Maciej Bendkowski, Sergey Dovgal",
     author_email = "maciej.bendkowski@tcs.uj.edu.pl, vic.north@gmail.com",
@@ -15,5 +15,5 @@ setup(
     packages = find_packages(),
 
     # unit tests
-    test_suite = "tests.singular_problems"
+    test_suite = 'tests.problems'
 )
