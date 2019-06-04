@@ -20,8 +20,8 @@ In Paganini, we write the following snippet defining the same combinatorial clas
 
 ```
 sp = Specification()
-z, T = sp.variable(), sp.variable()
-sp.add(T, z * sp.Seq(T))
+z, T = Variable(), Variable()
+sp.add(T, z * Seq(T))
 ```
 
 Now, if we we want to construct a corresponding sampler, say *analytic (or Boltzmann) sampler*, we have to find a specific value of `Z` and use it to compute branching probabilities governing the random choices of our sampler (essentially the number of children for each of the constructed nodes). What value of `Z` should be choose if we are interested in large, uniform, and unbounded in size trees? With Paganini, this task amounts to invoking
@@ -44,7 +44,7 @@ With the help of Paganini, users can demand the computation of tuning variables 
 
 ```
 sp = Specification()                                                    
-z, u, M = sp.variable(1000), sp.variable(200), sp.variable()            
+z, u, M = Variable(1000), Variable(200), Variable()            
 sp.add(M, z + u * z * M + z * M ** 2)                                    
 sp.run_tuner(M) 
 ```
@@ -58,8 +58,8 @@ Paganini is under constant development, supporting a growing class of so-called 
     T = Z * MSET(T)."""
 
 spec = Specification()
-z, T = spec.variable(), spec.variable()
-spec.add(T, z * spec.MSet(T))
+z, T = Variable(), Variable()
+spec.add(T, z * MSet(T))
 
 spec.run_singular_tuner(z)
 
@@ -72,8 +72,8 @@ self.assertAlmostEqual(T.value, 1)
     C = CYC(Z * SEQ(Z))."""
 
 spec = Specification()
-z, C = spec.variable(), spec.variable()
-spec.add(C, spec.Cyc(z * spec.Seq(z)))
+z, C = Variable(), Variable()
+spec.add(C, Cyc(z * Seq(z)))
 
 spec.run_singular_tuner(z)
 self.assertAlmostEqual(z.value, 0.5, 5)
@@ -86,11 +86,12 @@ self.assertAlmostEqual(z.value, 0.5, 5)
     U = Z * MSet(U)."""
 
 spec = Specification()
-z, F = spec.variable(), spec.variable()
-K, U = spec.variable(), spec.variable()
-spec.add(F, spec.MSet(K))
-spec.add(K, spec.Cyc(U))
-spec.add(U, z * spec.MSet(U))
+z, F = Variable(), Variable()
+K, U = Variable(), Variable()
+
+spec.add(F, MSet(K))
+spec.add(K, Cyc(U))
+spec.add(U, z * MSet(U))
 
 spec.run_singular_tuner(z)
 self.assertAlmostEqual(z.value, 0.3383218568992077, 5)
