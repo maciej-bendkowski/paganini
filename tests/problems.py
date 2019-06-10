@@ -222,6 +222,17 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.3383218568992077, 5)
 
+    def test_ternary_trees(self):
+        """ Singular ternary trees.
+            T = 1 + Z * Seq_{= 3}(Z)."""
+
+        spec = Specification()
+        z, T = Variable(), Variable()
+        spec.add(T, 1 + z * Seq(T, eq(3)))
+
+        spec.run_singular_tuner(z)
+        self.assertAlmostEqual(z.value, 0.148148148148149, 5)
+
 class MeanTuner(unittest.TestCase):
 
     def test_motzkin_trees(self):

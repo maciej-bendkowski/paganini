@@ -29,6 +29,10 @@ class Seq(Variable):
 
             spec.add(self, expressions)
 
+        elif self.constraint.operator == Operator.EQ:
+            # note: Seq(expr)_{= k} = expr ** k
+            spec.add(self, self.inner_expressions ** self.constraint.value)
+
         else: # constraint.operator == Operator.GEQ
             # note: Seq(expr)_{>= k} = expr^k + expr^{k+1} + ...
             #                        = expr^k (1 + expr^2 + expr^3 + ...)
@@ -69,8 +73,9 @@ class Cyc(Variable):
 class Operator(Enum):
     """ Enumeration of supported constraint signs."""
     LEQ       = 1 # less or equal
-    GEQ       = 2 # greater or equal
-    UNBOUNDED = 3 # unbounded operator
+    EQ        = 2 # equal
+    GEQ       = 3 # greater or equal
+    UNBOUNDED = 4 # unbounded operator
 
 class Constraint:
     """ Supported constraints for classes such as SEQ."""
@@ -90,6 +95,11 @@ def leq(n):
     """ Creates a less or equal constraint for the given input."""
     assert n >= 0, "Negative constraints are not supported."
     return Constraint(Operator.LEQ, n)
+
+def eq(n):
+    """ Creates an equal constraint for the given input."""
+    assert n > 0, "Non-positive constraints are not supported."
+    return Constraint(Operator.EQ, n)
 
 def geq(n):
     """ Creates a greater or equal constraint for the given input."""
