@@ -14,6 +14,8 @@ setup(
     install_requires = ['numpy', 'sympy', 'cvxpy'],
     packages = find_packages(),
 
+    python_requires='>=3.0', # drop support Python 2
+
     # unit tests
     test_suite = 'tests.problems'
 )

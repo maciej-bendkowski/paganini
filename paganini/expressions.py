@@ -5,6 +5,8 @@ from enum import Enum
 from scipy import sparse
 from collections import Counter
 
+__all__ = ('Expr', 'VariableType', 'Variable', 'Polynomial')
+
 class Expr:
     """ Algebraic expressions (multivariate monomials) in form of
         c x_1 ^ k_1 x_2 ^ k_2 ... x_m ^ k_m."""

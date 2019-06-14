@@ -3,6 +3,12 @@ import cvxpy
 from math import gcd
 from paganini.expressions import *
 
+from enum import Enum
+
+# define the namespace to avoid polluting with foreign packages
+__all__ = ('Seq', 'MSet', 'Cyc', 'Operator', 'Constraint',
+        'Type', 'Params', 'Specification')
+
 class Seq(Variable):
     """ Sequence variables."""
 
