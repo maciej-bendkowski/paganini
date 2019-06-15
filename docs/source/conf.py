@@ -38,6 +38,9 @@ extensions = [
     'sphinx.ext.extlinks'
 ]
 
+# Do not attempt importing packages over the internet
+autodoc_mock_imports = ['sympy']
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
