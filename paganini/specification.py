@@ -267,7 +267,7 @@ class Specification:
         return Expr(expr.coeff, variables)
 
     def _diagonal_variable(self, var, d = 1):
-        """ Given T(z) creates its kth diagonal, i.e. T(z^k)."""
+        """ Given :math:`T(z)` creates its kth diagonal, i.e. :math:`T(z^k)`."""
 
         assert d > 0, 'Non-positive diagonal parameter.'
         assert var.is_type_variable, 'Requested diagonal of non-type variable.'
@@ -401,11 +401,11 @@ class Specification:
 
         Consider the following example:
 
-        sp = Specification()
-        z, u, M = Variable(1000), Variable(200), Variable()
-        sp.add(M, z + u * z * M + z * M **2)
-        params = Params(Type.ALGEBRAIC)
-        sp.run_tuner(M, params)
+          >>> sp = Specification()
+          >>> z, u, M = Variable(1000), Variable(200), Variable()
+          >>> sp.add(M, z + u * z * M + z * M **2)
+          >>> params = Params(Type.ALGEBRAIC)
+          >>> sp.run_tuner(M, params)
 
         Here, the variables z and u are marked with *absolute* values 1000 and
         200, respectively. The input type represents the type of Motzkin trees,
@@ -454,9 +454,9 @@ class Specification:
 
         Consider the following example:
 
-        sp = Specification()
-        z, u, M = Variable(), Variable(0.4), Variable()
-        sp.add(M, z + u * z * M + z * M **2)
+          >>> sp = Specification()
+          >>> z, u, M = Variable(), Variable(0.4), Variable()
+          >>> sp.add(M, z + u * z * M + z * M **2)
 
         params = Params(Type.ALGEBRAIC)
         sp.run_singular_tuner(z, params)
@@ -464,7 +464,7 @@ class Specification:
         Here, the variable u is marked with a *frequency* 0.4.  The type M
         represents the type of Motzkin trees, i.e. unary-binary plane trees.
         Variable z marks their size, whereas u marks the occurrences of unary
-        nodes. The tuning goal is to obtain specific values of z, u, and M, such
+        nodes. The tuning goal is to obtain specific values of `z`, `u`, and `M`, such
         that the induced branching probabilities lead to a sampler which
         generates, in expectation, Motzkin trees of infinite (i.e. unbounded)
         size and around 40% of unary nodes.
