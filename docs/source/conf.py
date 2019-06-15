@@ -39,7 +39,7 @@ extensions = [
 ]
 
 # Do not attempt importing packages over the internet
-autodoc_mock_imports = ['sympy', 'numpy', 'cvxpy']
+autodoc_mock_imports = ['sympy', 'numpy', 'cvxpy', 'scipy']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
