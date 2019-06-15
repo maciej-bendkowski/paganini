@@ -14,6 +14,8 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
 
+# explicitly assign the index page
+master_doc = 'index'
 
 # -- Project information -----------------------------------------------------
 
