@@ -438,7 +438,7 @@ class Specification:
         constraints = self._compose_constraints(variables, n)
 
         # compose the objective
-        obj = np.zeros(n)
+        obj = np.zeros(n, dtype='double')
         obj[t.idx] = 1.0
 
         for v in self._tuned_variables:
@@ -494,7 +494,7 @@ class Specification:
             constraints.append(cvxpy.norm(variables, 2) <= params.norm)
 
         # compose the objective
-        obj = np.zeros(n)
+        obj = np.zeros(n, dtype='double')
         obj[z.idx] = 1.0
 
         for v in self._tuned_variables:

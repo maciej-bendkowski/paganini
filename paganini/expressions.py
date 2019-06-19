@@ -71,6 +71,7 @@ class Variable(Expr):
 
         self.variables[self] = 1
         self.type  = VariableType.PLAIN
+        # warning: "type" is a reserved keyword
         self.tuning_param = tuning_param
         self.idx   = None
         self.value = None
@@ -188,5 +189,6 @@ class Polynomial:
         # together with logarithms of respective monomial coefficients and
         # the collected constant term (unaltered).
         return (sparse.csr_matrix((np.array(data),
-            (np.array(row),np.array(col))), shape=(rows, no_variables)),
+            (np.array(row),np.array(col))), shape=(rows, no_variables),
+            dtype='double'),
             np.array(coeffs), constant_expr)
