@@ -1,4 +1,6 @@
 import cvxpy
+import sympy
+import numpy as np
 
 from math import gcd
 from paganini.expressions import *
