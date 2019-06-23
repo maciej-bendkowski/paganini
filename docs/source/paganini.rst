@@ -1,25 +1,5 @@
-paganini package
-================
-
-Submodules
-----------
-
-paganini.expressions module
----------------------------
-
-.. automodule:: paganini.expressions
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-paganini.specification module
------------------------------
-
-.. automodule:: paganini.specification
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
+Paganini's API
+==============
 
 Module contents
 ---------------
@@ -28,3 +8,15 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+.. automodule:: paganini.expressions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: paganini.specification
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+

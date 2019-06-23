@@ -34,6 +34,7 @@ release = '1.1.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
     'sphinx.ext.mathjax',
     'sphinx.ext.extlinks'
 ]
@@ -49,6 +50,9 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# Github extension
+
+github_project_url = "http://github.com/maciej-bendkowski/paganini"
 
 # -- Options for HTML output -------------------------------------------------
 
