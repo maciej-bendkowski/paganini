@@ -7,7 +7,7 @@ from collections import Counter
 
 __all__ = ('Expr', 'VariableType', 'Variable', 'Polynomial')
 
-class Expr:
+class Expr(object):
     """ Algebraic expressions (multivariate monomials) in form of
         :math:`c x_1^{k_1} x_2^{k_2} \cdots x_m^{k_m}.`"""
 
@@ -173,7 +173,8 @@ class Polynomial:
                     raise ValueError('Non-positive monomial coefficient.')
 
                 if exp.coeff > 0:
-                    coeffs.append(sympy.log(exp.coeff))
+                    #coeffs.append(sympy.log(exp.coeff))
+                    coeffs.append(np.float64((sympy.log(exp.coeff)).evalf()))
                 else:
                     constant_expr += exp.coeff
 

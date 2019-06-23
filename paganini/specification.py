@@ -2,7 +2,7 @@ import cvxpy
 import sympy
 import numpy as np
 
-from math import gcd
+from sympy import gcd
 from paganini.expressions import *
 
 from enum import Enum
@@ -123,7 +123,7 @@ class Params:
     """ CVXPY solver parameters initalised with some defaults."""
 
     def __init__(self, sys_type):
-        self.verbose   = True
+        self.verbose   = False # keep verbose = True only for debug output
         if sys_type == Type.RATIONAL:
             self.sys_type  = Type.RATIONAL
             self.solver    = cvxpy.SCS
@@ -345,9 +345,19 @@ class Specification:
             for i, e in enumerate(rhs):
                 matrix, coeffs, constant_term = e.specification(n)
                 exponents = matrix * variables + coeffs
-                xs.append(1/(i+1) * cvxpy.exp(cvxpy.sum(exponents)))
+                #xs.append(1/(i+1) * cvxpy.exp(cvxpy.sum(exponents)))
+                xs.append(1/(i+1) * cvxpy.exp(sum(exponents)))
+                #xs.append(1/(i+1) * cvxpy.exp([
+                #    exponent
+                #    for exponent in exponents
+                #])
 
-            constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            #constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            constraints.append(variables[v.idx] >= sum(xs))
+            #constraints.append(variables[v.idx] >= sum([
+            #    x
+            #    for x in xs
+            #]))
 
         # Cyc variable constraints.
         for v in self._cycs:
@@ -357,7 +367,8 @@ class Specification:
                 exponents = matrix * variables + coeffs
                 xs.append(phi(i+1)/(i+1) * exponents)
 
-            constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            #constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            constraints.append(variables[v.idx] >= sum(xs))
 
         return constraints
 
@@ -391,7 +402,7 @@ class Specification:
 
         # decorate system variables
         for idx, expr in enumerate(var.value):
-            self._all_variables[idx].value = sympy.exp(expr).evalf()
+            self._all_variables[idx].value = (sympy.exp(expr)).evalf()
 
         return solution
 
@@ -459,9 +470,9 @@ class Specification:
           >>> sp = Specification()
           >>> z, u, M = Variable(), Variable(0.4), Variable()
           >>> sp.add(M, z + u * z * M + z * M **2)
-
-        params = Params(Type.ALGEBRAIC)
-        sp.run_singular_tuner(z, params)
+          >>>
+          >>> params = Params(Type.ALGEBRAIC)
+          >>> sp.run_singular_tuner(z, params)
 
         Here, the variable u is marked with a *frequency* 0.4.  The type M
         represents the type of Motzkin trees, i.e. unary-binary plane trees.
