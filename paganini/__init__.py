@@ -18,4 +18,5 @@ __version__ = "1.1.1"
 
 from .expressions import *
 from .specification import *
-from .tutorial import *
+import paganini.tutorial
+import paganini.tests

@@ -43,8 +43,15 @@ install the code manually from `github`.
 Testing
 -------
 
-In order to verify that paganini works, follow the steps of the tutorial
+In order to verify that paganini works, run the following in the command line
+
+::
+
+    python3 -m paganini.tests
+
+You can get more examles in the tests folder
+
+::
 
     >>> import paganini
-    >>> help(paganini.tutorial)
-
+    >>> help(paganini.tests)
