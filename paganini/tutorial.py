@@ -1,3 +1,4 @@
+"""
 Tutorial
 ========
 
@@ -112,4 +113,4 @@ Paganini is under constant development, supporting a growing class of so-called 
     >>> spec.run_singular_tuner(z)
     >>> z.value
     0.3383218568992077
-
+"""

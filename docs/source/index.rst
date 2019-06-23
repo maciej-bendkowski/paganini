@@ -19,6 +19,7 @@ Given a combinatorial specification, expressed using a domain-specific language 
    install.rst
    tutorial.rst
    paganini.rst
+   citing.rst
    references.rst
    aboutus.rst
 
