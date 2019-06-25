@@ -54,6 +54,16 @@ class Expr(object):
 
         return Expr(self.coeff ** n, xs)
 
+    def __repr__(self):
+        monic_monomial = ' '.join([
+                variable.__repr__() + "^" + str(self.variables[variable])
+                for variable in self.variables
+            ])
+        if self.coeff == 1:
+            return monic_monomial
+        else:
+            return self.coeff + " " + monic_monomial
+
     @property
     def is_constant(self):
         """ True iff the expression represents a constant."""
@@ -81,6 +91,11 @@ class Variable(Expr):
         """ True iff the variable represents a type variable.
         In other words, if it admits a defining equation."""
         return self.type == VariableType.TYPE
+
+    def __repr__(self):
+        return "var" + str(self.idx)
+
+    __str__ = __repr__
 
     def set_expectation(self, tuning_param):
         self.tuning_param = tuning_param
@@ -150,6 +165,12 @@ class Polynomial:
 
     def __iter__(self):
         return iter(self._expressions)
+
+    def __repr__(self):
+        return ' + '.join([
+            expression.__repr__()
+            for expression in self._expressions
+        ])
 
     def specification(self, no_variables):
         """ Composes a sparse matrix specification of the polynomial. Requires

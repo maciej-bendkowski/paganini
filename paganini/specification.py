@@ -124,7 +124,7 @@ class Params:
     """ CVXPY solver parameters initalised with some defaults."""
 
     def __init__(self, sys_type):
-        self.verbose   = False # keep verbose = True only for debug output
+        self.verbose = False # keep verbose = True only for debug output
         if sys_type == Type.RATIONAL:
             self.sys_type  = Type.RATIONAL
             self.solver    = cvxpy.SCS
@@ -351,19 +351,13 @@ class Specification:
             for i, e in enumerate(rhs):
                 matrix, coeffs, constant_term = e.specification(n)
                 exponents = matrix * variables + coeffs
-                #xs.append(1/(i+1) * cvxpy.exp(cvxpy.sum(exponents)))
+                # xs.append(1/(i+1) * cvxpy.exp(cvxpy.sum(exponents)))
+                # cvxpy.sum is not supported in Python2
                 xs.append(1/(i+1) * cvxpy.exp(sum(exponents)))
-                #xs.append(1/(i+1) * cvxpy.exp([
-                #    exponent
-                #    for exponent in exponents
-                #])
 
-            #constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            # constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            # cvxpy.sum is not supported in Python2
             constraints.append(variables[v.idx] >= sum(xs))
-            #constraints.append(variables[v.idx] >= sum([
-            #    x
-            #    for x in xs
-            #]))
 
         # Cyc variable constraints.
         for v in self._cycs:
@@ -373,7 +367,8 @@ class Specification:
                 exponents = matrix * variables + coeffs
                 xs.append(phi(i+1)/(i+1) * exponents)
 
-            #constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            # constraints.append(variables[v.idx] >= cvxpy.sum(xs))
+            # cvxpy.sum is not supported in Python2
             constraints.append(variables[v.idx] >= sum(xs))
 
         return constraints
