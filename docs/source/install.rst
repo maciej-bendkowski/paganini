@@ -24,9 +24,14 @@ The latest release of `Paganini` can be installed using `pip`:
 
     >>> pip install paganini
 
-If you want to update to the recent version of paganini, use
+.. tip::
+    If you want to update to the recent version of paganini, use
 
-    >>> pip install --upgrade paganini
+        pip3 install --upgrade paganini
+
+    You may also want to upgrade `pip` so that the installation works properly
+
+        pip3 install --upgrade pip
 
 Installation from sources
 -------------------------

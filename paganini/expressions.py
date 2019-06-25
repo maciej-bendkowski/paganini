@@ -82,6 +82,9 @@ class Variable(Expr):
         In other words, if it admits a defining equation."""
         return self.type == VariableType.TYPE
 
+    def set_expectation(self, tuning_param):
+        self.tuning_param = tuning_param
+
 class Polynomial:
     """ Polynomials of multivariate algebraic expressions."""
 

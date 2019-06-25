@@ -5,6 +5,7 @@ import numpy as np
 from sympy import gcd
 from paganini.expressions import *
 
+import sys
 from enum import Enum
 
 # define the namespace to avoid polluting with foreign packages
@@ -146,6 +147,11 @@ def phi(n):
             out += 1
 
     return out
+
+class SpecificationError(Exception):
+    """Error thrown when the system is not well-specified.
+    """
+    pass
 
 class Specification:
     """ Symbolic system specifications."""
@@ -389,22 +395,32 @@ class Specification:
             v.register(self)
 
     def _run_solver(self, var, problem, params):
-        """ Invokes the CVXPY solver."""
+        """ Invokes the CVXPY solver.
+        Returns the error code.
+        If a solution is found, returns 0.
+        If no solution is found, returns 1.
+        """
 
-        if params.sys_type == Type.RATIONAL:
-            solution = problem.solve(solver = params.solver, verbose =
-                    params.verbose, eps = params.eps, max_iters =
-                    params.max_iters)
-        else:
-            solution = problem.solve(solver = params.solver, verbose =
-                    params.verbose, feastol = params.feastol, max_iters =
-                    params.max_iters)
+        try:
+            if params.sys_type == Type.RATIONAL:
+                solution = problem.solve(solver = params.solver, verbose =
+                        params.verbose, eps = params.eps, max_iters =
+                        params.max_iters)
+            else:
+                solution = problem.solve(solver = params.solver, verbose =
+                        params.verbose, feastol = params.feastol, max_iters =
+                        params.max_iters)
+        except cvxpy.SolverError:
+            sys.stderr.write('Optimal solution is unbounded or empty. Tuning is impossible.\n')
+            return 1
+
 
         # decorate system variables
         for idx, expr in enumerate(var.value):
             self._all_variables[idx].value = (sympy.exp(expr)).evalf()
 
-        return solution
+        #return solution
+        return 0
 
     def run_tuner(self, t, params = None):
         """ Given the type variable and a set of tuning parameters, composes a
