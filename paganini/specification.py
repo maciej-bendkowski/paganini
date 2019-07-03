@@ -2,7 +2,7 @@ import cvxpy
 import sympy
 import numpy as np
 
-from sympy import gcd
+from paganini.utils import phi
 from paganini.expressions import *
 
 import sys
@@ -136,17 +136,6 @@ class Params:
             self.solver    = cvxpy.ECOS
             self.max_iters = 100
             self.feastol   = 1.e-20
-
-def phi(n):
-    """ Euler's totient function."""
-    assert n >= 0, 'Negative integer.'
-
-    out = 0
-    for i in range(1, n + 1):
-        if gcd(n, i) == 1:
-            out += 1
-
-    return out
 
 class SpecificationError(Exception):
     """Error thrown when the system is not well-specified.
