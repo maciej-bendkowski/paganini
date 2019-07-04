@@ -1,5 +1,6 @@
 import unittest
 
+from paganini.utils import *
 from paganini.expressions import *
 from paganini.specification import *
 
@@ -94,7 +95,7 @@ class SingularTuner(unittest.TestCase):
 
         spec.run_singular_tuner(z)
 
-        self.assertAlmostEqual(z.value, 0.338322112871298)
+        self.assertAlmostEqual(z.value, 0.338322112871298, 5)
         self.assertAlmostEqual(T.value, 1)
 
     def test_singular_custom_trees(self):
@@ -233,6 +234,28 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.148148148148149, 5)
 
+    def test_otter_trees(self):
+        """ Singular Otter trees.
+            T = 1 + Z * MSet_{ = 2}(T)."""
+
+        spec = Specification()
+        z, T = Variable(), Variable()
+        spec.add(T, 1 + z * MSet(T, eq(2)))
+
+        spec.run_singular_tuner(z)
+        self.assertAlmostEqual(z.value, 0.4026975, 5)
+
+    def test_otter_trees2(self):
+        """ Singular Otter trees.
+            T = 1 + Z * MSet_{ = 3}(T)."""
+
+        spec = Specification()
+        z, T = Variable(), Variable()
+        spec.add(T, 1 + z * MSet(T, eq(3)))
+
+        spec.run_singular_tuner(z)
+        self.assertAlmostEqual(z.value, 0.355181762886292, 5)
+
 class MeanTuner(unittest.TestCase):
 
     def test_motzkin_trees(self):
@@ -291,6 +314,22 @@ class MeanTuner(unittest.TestCase):
         self.assertAlmostEqual(z.value, 0.244827373512259)
         self.assertAlmostEqual(u.value, 1.78303233505684)
         self.assertAlmostEqual(L.value, 1.15073912781323)
+
+class UtilsTuner(unittest.TestCase):
+
+    def test_partition_sequences(self):
+        """ Checks that each of the generated partition-sequences
+        has proper length and structure (sums up to its length)."""
+
+        for n in range(2, 20):
+            for ps in partition_sequences(n):
+                self.assertEqual(len(ps), n)
+
+                total = 0
+                for i, k in enumerate(ps):
+                    total += (i + 1) * k
+
+                self.assertEqual(total, n)
 
 if __name__ == '__main__':
     unittest.main()

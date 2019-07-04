@@ -2,11 +2,12 @@ import cvxpy
 import sympy
 import numpy as np
 
-from paganini.utils import phi
+from paganini.utils import phi, partition_sequences
 from paganini.expressions import *
 
 import sys
 from enum import Enum
+from math import factorial
 
 # define the namespace to avoid polluting with foreign packages
 __all__ = ('Seq', 'MSet', 'Cyc', 'Operator', 'Constraint',
@@ -54,12 +55,13 @@ class Seq(Variable):
 class MSet(Variable):
     """ MSet variables."""
 
-    def __init__(self, expression):
+    def __init__(self, expression, constraint = None):
         super(MSet,self).__init__()
 
         expression = Polynomial.cast(expression)
         self.inner_expressions = expression
         self.type = VariableType.TYPE # make sure its a type variable
+        self.constraint = Constraint.normalise(constraint)
 
     def register(self, spec):
         """ Unfolds the MSet definition and registers it in the given system."""
@@ -134,8 +136,10 @@ class Params:
         else:
             self.sys_type  = Type.ALGEBRAIC
             self.solver    = cvxpy.ECOS
-            self.max_iters = 100
+            self.max_iters = 250
             self.feastol   = 1.e-20
+            self.abstol    = 1.e-20
+            self.reltol    = 1.e-20
 
 class SpecificationError(Exception):
     """Error thrown when the system is not well-specified.
@@ -145,7 +149,7 @@ class SpecificationError(Exception):
 class Specification:
     """ Symbolic system specifications."""
 
-    def __init__(self, truncate = 10):
+    def __init__(self, truncate = 20):
         """ Creates a new specification. The optional `truncate` parameter
         controls the truncation threshold for infinite series, intrinsic to
         some more involved constructions, such as multisets or cycles."""
@@ -289,13 +293,39 @@ class Specification:
             self.add(var_d, [self._diagonal_expr(e, d) for e in monomials])
             return var_d
 
-        elif var in self._mset_variables:
-            self._msets[var_d] = []
-            for k in range(d, self._truncate + 1, d):
-                self._msets[var_d].append(Polynomial([self._diagonal_expr(e, k)\
-                        for e in var.inner_expressions]))
+        if var in self._mset_variables:
 
-            return var_d
+            if var.constraint.operator == Operator.EQ:
+                # note: constrained MSet_{ = k}.
+
+                series, k = [], var.constraint.value
+                for n in partition_sequences(k):
+                    product = Polynomial(Expr(1))
+                    for i in range(1, k + 1): # note the truncation.
+                        if i * d <= self._truncate:
+                            c = 1 / (factorial(n[i - 1]) * (i ** n[i - 1]))
+                            expr = Polynomial([self._diagonal_expr(e, i * d)\
+                                for e in var.inner_expressions])
+
+                            product *= (c * expr ** n[i - 1])
+
+                    if not product.is_one():
+                        series.append(product)
+
+                polynomial = series[0]
+                for i in range(1, len(series)):
+                    polynomial += series[i]
+
+                self.add(var_d, polynomial)
+                return var_d
+
+            else:
+                self._msets[var_d] = []
+                for k in range(d, self._truncate + 1, d):
+                    self._msets[var_d].append(Polynomial([self._diagonal_expr(e, k)\
+                            for e in var.inner_expressions]))
+
+                return var_d
 
         elif var in self._cyc_variables:
             self._cycs[var_d] = []
@@ -393,7 +423,8 @@ class Specification:
             else:
                 solution = problem.solve(solver = params.solver, verbose =
                         params.verbose, feastol = params.feastol, max_iters =
-                        params.max_iters)
+                        params.max_iters, abstol = params.abstol, reltol =
+                        params.reltol)
         except cvxpy.SolverError:
             sys.stderr.write('Optimal solution is unbounded or empty. Tuning is impossible.\n')
             return 1

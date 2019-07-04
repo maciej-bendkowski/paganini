@@ -57,12 +57,11 @@ class Expr(object):
     def __repr__(self):
         monic_monomial = ' '.join([
                 variable.__repr__() + "^" + str(self.variables[variable])
-                for variable in self.variables
-            ])
-        if self.coeff == 1:
+                for variable in self.variables])
+        if self.coeff == 1 and len(monic_monomial) > 0:
             return monic_monomial
         else:
-            return self.coeff + " " + monic_monomial
+            return str(self.coeff) + " " + monic_monomial
 
     @property
     def is_constant(self):
@@ -152,7 +151,10 @@ class Polynomial:
 
     def __pow__(self, n):
         """ Naive polynomial exponentiation."""
-        assert n > 0, 'Non-positive exponent.'
+        assert n >= 0, 'Non-positive exponent.'
+
+        if n == 0:
+            return Polynomial(Expr(1))
 
         if n == 1:
             return Polynomial(self._expressions)
@@ -171,6 +173,12 @@ class Polynomial:
             expression.__repr__()
             for expression in self._expressions
         ])
+
+    def is_one(self):
+        """ Checks if the polynomial represents a constant one."""
+        return len(self._expressions) == 1\
+                and self._expressions[0].is_constant\
+                and self._expressions[0].coeff == 1
 
     def specification(self, no_variables):
         """ Composes a sparse matrix specification of the polynomial. Requires
