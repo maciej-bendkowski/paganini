@@ -15,5 +15,5 @@ setup(
     packages = find_packages(),
 
     # unit tests
-    test_suite = 'tests.problems'
+    test_suite = 'paganini.tests'
 )
