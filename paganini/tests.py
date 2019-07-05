@@ -267,6 +267,19 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.355181762886292, 5)
 
+    def test_functional_graphs(self):
+        """ Singular functional graphs.
+            F = MSet(Cyc(T))
+            T = Z MSet(T)."""
+
+        spec = Specification()
+        z, F, T = Variable(), Variable(), Variable()
+        spec.add(F, MSet(Cyc(T)))
+        spec.add(T, z * MSet(T))
+
+        spec.run_singular_tuner(z)
+        self.assertAlmostEqual(z.value, 0.338320886556552, 5)
+
 class MeanTuner(unittest.TestCase):
 
     def test_motzkin_trees(self):
