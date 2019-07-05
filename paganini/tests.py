@@ -206,6 +206,17 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.5, 5)
 
+    def test_cyclic_compositions2(self):
+        """ Singular tuning of bounded cyclic compositions.
+            C = CYC_{= 12}(Z * SEQ(Z))."""
+
+        spec = Specification()
+        z, C = Variable(), Variable()
+        spec.add(C, Cyc(z * Seq(z), eq(12)))
+
+        spec.run_singular_tuner(z)
+        self.assertAlmostEqual(z.value, 0.999999993519280, 5)
+
     def test_unlabelled_functional_graphs(self):
         """ Singular tuning of unlabelled functional graphs.
             F = MSet(K)

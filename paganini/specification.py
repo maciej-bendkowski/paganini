@@ -70,12 +70,13 @@ class MSet(Variable):
 class Cyc(Variable):
     """ Cyc variables."""
 
-    def __init__(self, expression):
+    def __init__(self, expression, constraint = None):
         super(Cyc,self).__init__()
 
         expression = Polynomial.cast(expression)
         self.inner_expressions = expression
         self.type = VariableType.TYPE # make sure its a type variable
+        self.constraint = Constraint.normalise(constraint)
 
     def register(self, spec):
         """ Unfolds the Cyc definition and registers it in the given system."""
@@ -328,19 +329,39 @@ class Specification:
                 return var_d
 
         elif var in self._cyc_variables:
-            self._cycs[var_d] = []
-            for k in range(d, self._truncate + 1, d):
+            if var.constraint.operator == Operator.EQ:
+                # note: constrained Cyc_{ = k}.
 
-                # create a sequence version of the expressions
-                seq_k = Seq([self._diagonal_expr(e, k) for e in
-                            var.inner_expressions])
+                series, k = [], var.constraint.value
+                for i in range(1, k + 1):
+                    if k % i == 0:
+                        c = phi(i) / k
+                        expr = Polynomial([self._diagonal_expr(e, i * d)\
+                            for e in var.inner_expressions])
 
-                self._register_variable(seq_k)
-                seq_k.register(self)
+                        series.append(c * expr)
 
-                self._cycs[var_d].append(Polynomial([seq_k]))
+                polynomial = series[0]
+                for i in range(1, len(series)):
+                    polynomial += series[i]
 
-            return var_d
+                self.add(var_d, polynomial)
+                return var_d
+
+            else:
+                self._cycs[var_d] = []
+                for k in range(d, self._truncate + 1, d):
+
+                    # create a sequence version of the expressions
+                    seq_k = Seq([self._diagonal_expr(e, k) for e in
+                                var.inner_expressions])
+
+                    self._register_variable(seq_k)
+                    seq_k.register(self)
+
+                    self._cycs[var_d].append(Polynomial([seq_k]))
+
+                return var_d
 
     def add(self, var, expression):
         """ Includes the given definition in the specification."""
