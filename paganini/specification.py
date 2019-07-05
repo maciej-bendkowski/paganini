@@ -63,6 +63,10 @@ class MSet(Variable):
         self.type = VariableType.TYPE # make sure its a type variable
         self.constraint = Constraint.normalise(constraint)
 
+        if self.constraint.operator == Operator.LEQ\
+                or self.constraint.operator == Operator.GEQ:
+                    raise AttributeError("Unsupported constraint.")
+
     def register(self, spec):
         """ Unfolds the MSet definition and registers it in the given system."""
         spec._diagonal_variable(self, 1)
@@ -77,6 +81,10 @@ class Cyc(Variable):
         self.inner_expressions = expression
         self.type = VariableType.TYPE # make sure its a type variable
         self.constraint = Constraint.normalise(constraint)
+
+        if self.constraint.operator == Operator.LEQ\
+                or self.constraint.operator == Operator.GEQ:
+                    raise AttributeError("Unsupported constraint.")
 
     def register(self, spec):
         """ Unfolds the Cyc definition and registers it in the given system."""
