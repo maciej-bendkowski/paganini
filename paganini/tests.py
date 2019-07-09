@@ -355,5 +355,16 @@ class UtilsTuner(unittest.TestCase):
 
                 self.assertEqual(total, n)
 
+class ExpressionsTest(unittest.TestCase):
+
+    def test_related_expressions(self):
+        x, y, z = Variable(), Variable(), Variable()
+
+        self.assertTrue(x.related(x))
+        self.assertFalse(x.related(y))
+        self.assertFalse(x.related(x * x))
+        self.assertTrue((x * y).related(y * x))
+        self.assertFalse((x * y * z).related(y * x))
+
 if __name__ == '__main__':
     unittest.main()

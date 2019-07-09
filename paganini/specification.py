@@ -180,6 +180,13 @@ class Specification:
 
         self._truncate = truncate
 
+    def __repr__(self):
+
+        return '\n'.join([
+            v.__repr__() + ' = ' + self._equations[v].__repr__()
+            for v in self._equations
+        ])
+
     def _next_idx(self):
         n = self._index_counter
         self._index_counter += 1

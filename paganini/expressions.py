@@ -58,10 +58,17 @@ class Expr(object):
         monic_monomial = ' '.join([
                 variable.__repr__() + "^" + str(self.variables[variable])
                 for variable in self.variables])
+
         if self.coeff == 1 and len(monic_monomial) > 0:
             return monic_monomial
         else:
             return str(self.coeff) + " " + monic_monomial
+
+    def related(self, other):
+        """ Checks if the two expressions are related, i.e. have
+        the same exponents and perpahs a different coefficient."""
+        other = Expr.cast(other)
+        return self.variables == other.variables
 
     @property
     def is_constant(self):
@@ -80,8 +87,8 @@ class Variable(Expr):
 
         self.variables[self] = 1
         self.type  = VariableType.PLAIN
-        # warning: "type" is a reserved keyword
         self.tuning_param = tuning_param
+
         self.idx   = None
         self.value = None
 
@@ -120,10 +127,45 @@ class Polynomial:
         else:
             return other
 
+    @staticmethod
+    def simplify(polynomial):
+        """ Simplifies the given polynomial."""
+
+        equiv_classes = []
+        n = len(polynomial)
+        visited = [False] * n
+
+        # group expressions
+        for i in range(0, n):
+            if not visited[i]:
+                visited[i] = True
+                equiv_class = [polynomial[i]]
+
+                for j in range(i + 1, n):
+                    if polynomial[i].related(polynomial[j]):
+                        equiv_class.append(polynomial[j])
+                        visited[j] = True
+
+                equiv_classes.append(equiv_class)
+
+        # collect coefficients
+        simpl_expressions = []
+        for eqv in equiv_classes:
+
+            coeff = 0
+            for expr in eqv:
+                coeff += expr.coeff
+
+            if coeff != 0: # ignore vacuous terms
+                expr = Expr(coeff, eqv[0].variables)
+                simpl_expressions.append(expr)
+
+        return Polynomial(simpl_expressions)
+
     def __add__(self, other):
         """ Polynomial addition."""
         other = Polynomial.cast(other)
-        return Polynomial(self._expressions + other._expressions)
+        return Polynomial.simplify(self._expressions + other._expressions)
 
     __radd__ = __add__ # make addition commute again
 
@@ -145,7 +187,7 @@ class Polynomial:
             for b in other._expressions:
                 outcome.append(a * b)
 
-        return Polynomial(outcome)
+        return Polynomial.simplify(outcome)
 
     __rmul__ = __mul__ # make multiplication commute again
 
