@@ -184,56 +184,6 @@ class SingularTuner(unittest.TestCase):
         except ValueError:
             self.assertTrue(z.value is None)
 
-    def test_binary_necklaces(self):
-        """ Singular tuning of neckleces build using two kinds of beads.
-            N = CYC(Z + Z)."""
-
-        spec = Specification()
-        z, N = Variable(), Variable()
-        spec.add(N, Cyc(z + z))
-
-        spec.run_singular_tuner(z)
-        self.assertAlmostEqual(z.value, 0.5, 5)
-
-    def test_cyclic_compositions(self):
-        """ Singular tuning of cyclic compositions.
-            C = CYC(Z * SEQ(Z))."""
-
-        spec = Specification()
-        z, C = Variable(), Variable()
-        spec.add(C, Cyc(z * Seq(z)))
-
-        spec.run_singular_tuner(z)
-        self.assertAlmostEqual(z.value, 0.5, 5)
-
-    def test_cyclic_compositions2(self):
-        """ Singular tuning of bounded cyclic compositions.
-            C = CYC_{= 12}(Z * SEQ(Z))."""
-
-        spec = Specification()
-        z, C = Variable(), Variable()
-        spec.add(C, Cyc(z * Seq(z), eq(12)))
-
-        spec.run_singular_tuner(z)
-        self.assertAlmostEqual(z.value, 0.999999993519280, 5)
-
-    def test_unlabelled_functional_graphs(self):
-        """ Singular tuning of unlabelled functional graphs.
-            F = MSet(K)
-            K = CYC(U)
-            U = Z * MSet(U)."""
-
-        spec = Specification()
-        z, F = Variable(), Variable()
-        K, U = Variable(), Variable()
-
-        spec.add(F, MSet(K))
-        spec.add(K, Cyc(U))
-        spec.add(U, z * MSet(U))
-
-        spec.run_singular_tuner(z)
-        self.assertAlmostEqual(z.value, 0.3383218568992077, 5)
-
     def test_ternary_trees(self):
         """ Singular ternary trees.
             T = 1 + Z * Seq_{= 3}(Z)."""
@@ -266,19 +216,6 @@ class SingularTuner(unittest.TestCase):
 
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.355181762886292, 5)
-
-    def test_functional_graphs(self):
-        """ Singular functional graphs.
-            F = MSet(Cyc(T))
-            T = Z MSet(T)."""
-
-        spec = Specification()
-        z, F, T = Variable(), Variable(), Variable()
-        spec.add(F, MSet(Cyc(T)))
-        spec.add(T, z * MSet(T))
-
-        spec.run_singular_tuner(z)
-        self.assertAlmostEqual(z.value, 0.338320886556552, 5)
 
 class MeanTuner(unittest.TestCase):
 
@@ -338,6 +275,17 @@ class MeanTuner(unittest.TestCase):
         self.assertAlmostEqual(z.value, 0.244827373512259)
         self.assertAlmostEqual(u.value, 1.78303233505684)
         self.assertAlmostEqual(L.value, 1.15073912781323)
+
+    def test_cyclic_compositions2(self):
+        """ Tuning of bounded cyclic compositions.
+            C = CYC_{= 12}(Z * SEQ(Z))."""
+
+        spec = Specification()
+        z, C = Variable(20), Variable()
+        spec.add(C, Cyc(z * Seq(z), eq(12)))
+
+        spec.run_tuner(C)
+        self.assertAlmostEqual(z.value, 0.405765659263783, 5)
 
 class UtilsTuner(unittest.TestCase):
 

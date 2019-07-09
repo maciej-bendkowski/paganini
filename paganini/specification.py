@@ -82,9 +82,8 @@ class Cyc(Variable):
         self.type = VariableType.TYPE # make sure its a type variable
         self.constraint = Constraint.normalise(constraint)
 
-        if self.constraint.operator == Operator.LEQ\
-                or self.constraint.operator == Operator.GEQ:
-                    raise AttributeError("Unsupported constraint.")
+        if self.constraint.operator != Operator.EQ:
+            raise AttributeError("Unsupported constraint.")
 
     def register(self, spec):
         """ Unfolds the Cyc definition and registers it in the given system."""
@@ -158,10 +157,11 @@ class SpecificationError(Exception):
 class Specification:
     """ Symbolic system specifications."""
 
-    def __init__(self, truncate = 20):
-        """ Creates a new specification. The optional `truncate` parameter
-        controls the truncation threshold for infinite series, intrinsic to
-        some more involved constructions, such as multisets or cycles."""
+    def __init__(self, series_truncate = 20):
+        """ Creates a new specification. The optional `series_truncate`
+        parameter controls the truncation threshold for infinite series,
+        intrinsic to some more involved constructions, such as multisets or
+        cycles."""
 
         self._index_counter = 0
         self._equations = {}
@@ -176,9 +176,8 @@ class Specification:
         # diagonals.
         self._diag     = {}
         self._msets    = {}
-        self._cycs     = {}
 
-        self._truncate = truncate
+        self._series_truncate = series_truncate
 
     def __repr__(self):
 
@@ -318,7 +317,7 @@ class Specification:
                 for n in partition_sequences(k):
                     product = Polynomial(Expr(1))
                     for i in range(1, k + 1): # note the truncation.
-                        if i * d <= self._truncate:
+                        if i * d <= self._series_truncate:
                             c = 1 / (factorial(n[i - 1]) * (i ** n[i - 1]))
                             expr = Polynomial([self._diagonal_expr(e, i * d)\
                                 for e in var.inner_expressions])
@@ -328,16 +327,13 @@ class Specification:
                     if not product.is_one():
                         series.append(product)
 
-                polynomial = series[0]
-                for i in range(1, len(series)):
-                    polynomial += series[i]
+                self.add(var_d, Polynomial.sum(series))
 
-                self.add(var_d, polynomial)
                 return var_d
 
             else:
                 self._msets[var_d] = []
-                for k in range(d, self._truncate + 1, d):
+                for k in range(d, self._series_truncate + 1, d):
                     self._msets[var_d].append(Polynomial([self._diagonal_expr(e, k)\
                             for e in var.inner_expressions]))
 
@@ -350,31 +346,12 @@ class Specification:
                 series, k = [], var.constraint.value
                 for i in range(1, k + 1):
                     if k % i == 0:
-                        c = phi(i) / k
                         expr = Polynomial([self._diagonal_expr(e, i * d)\
                             for e in var.inner_expressions])
 
-                        series.append(c * expr)
+                        series.append((phi(i) / k) * expr ** (k // i))
 
-                polynomial = series[0]
-                for i in range(1, len(series)):
-                    polynomial += series[i]
-
-                self.add(var_d, polynomial)
-                return var_d
-
-            else:
-                self._cycs[var_d] = []
-                for k in range(d, self._truncate + 1, d):
-
-                    # create a sequence version of the expressions
-                    seq_k = Seq([self._diagonal_expr(e, k) for e in
-                                var.inner_expressions])
-
-                    self._register_variable(seq_k)
-                    seq_k.register(self)
-
-                    self._cycs[var_d].append(Polynomial([seq_k]))
+                self.add(var_d, Polynomial.sum(series))
 
                 return var_d
 
@@ -414,18 +391,6 @@ class Specification:
             # cvxpy.sum is not supported in Python2
             constraints.append(variables[v.idx] >= sum(xs))
 
-        # Cyc variable constraints.
-        for v in self._cycs:
-            xs, rhs = [],  self._cycs[v]
-            for i, e in enumerate(rhs):
-                matrix, coeffs, constant_term = e.specification(n)
-                exponents = matrix * variables + coeffs
-                xs.append(phi(i+1)/(i+1) * exponents)
-
-            # constraints.append(variables[v.idx] >= cvxpy.sum(xs))
-            # cvxpy.sum is not supported in Python2
-            constraints.append(variables[v.idx] >= sum(xs))
-
         return constraints
 
     def _unfold_variables(self):
@@ -441,7 +406,8 @@ class Specification:
         for v in self._mset_variables:
             v.register(self)
 
-        for v in self._cyc_variables:
+        for v in self._cyc_variables.copy():
+            # same argument as for seq.
             v.register(self)
 
     def _run_solver(self, var, problem, params):

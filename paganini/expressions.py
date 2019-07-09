@@ -162,6 +162,19 @@ class Polynomial:
 
         return Polynomial(simpl_expressions)
 
+    @staticmethod
+    def sum(series):
+        """ Evaluates the sum of the given series."""
+
+        if len(series) > 0:
+            p = series[0]
+            for i in range(1, len(series)):
+                p += series[i]
+
+            return p
+        else:
+            return Polynomial(Expr(0))
+
     def __add__(self, other):
         """ Polynomial addition."""
         other = Polynomial.cast(other)
