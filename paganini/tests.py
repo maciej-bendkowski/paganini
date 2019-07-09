@@ -282,7 +282,7 @@ class MeanTuner(unittest.TestCase):
 
         spec = Specification()
         z, C = Variable(20), Variable()
-        spec.add(C, Cyc(z * Seq(z), eq(12)))
+        spec.add(C, UCyc(z * Seq(z), eq(12)))
 
         spec.run_tuner(C)
         self.assertAlmostEqual(z.value, 0.405765659263783, 5)

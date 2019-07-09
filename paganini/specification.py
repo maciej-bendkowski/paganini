@@ -10,7 +10,7 @@ from enum import Enum
 from math import factorial
 
 # define the namespace to avoid polluting with foreign packages
-__all__ = ('Seq', 'MSet', 'Cyc', 'Operator', 'Constraint',
+__all__ = ('Seq', 'MSet', 'UCyc', 'Operator', 'Constraint',
         'Type', 'Params', 'Specification', 'leq', 'geq', 'eq')
 
 class Seq(Variable):
@@ -71,11 +71,11 @@ class MSet(Variable):
         """ Unfolds the MSet definition and registers it in the given system."""
         spec._diagonal_variable(self, 1)
 
-class Cyc(Variable):
-    """ Cyc variables."""
+class UCyc(Variable):
+    """ Unlabelled Cyc variables."""
 
     def __init__(self, expression, constraint = None):
-        super(Cyc,self).__init__()
+        super(UCyc,self).__init__()
 
         expression = Polynomial.cast(expression)
         self.inner_expressions = expression
@@ -86,7 +86,7 @@ class Cyc(Variable):
             raise AttributeError("Unsupported constraint.")
 
     def register(self, spec):
-        """ Unfolds the Cyc definition and registers it in the given system."""
+        """ Unfolds the UCyc definition and registers it in the given system."""
         spec._diagonal_variable(self, 1)
 
 class Operator(Enum):
@@ -217,7 +217,7 @@ class Specification:
             self._mset_variables.add(v)
             self._register_expressions(v.inner_expressions)
 
-        elif isinstance(v, Cyc):
+        elif isinstance(v, UCyc):
             self._cyc_variables.add(v)
             self._register_expressions(v.inner_expressions)
 
