@@ -392,7 +392,7 @@ class MeanTuner(unittest.TestCase):
             D = Set(Cyc_{> 3}(z))."""
 
         spec = Specification()
-        z, D, = Variable(10), Variable()
+        z, D = Variable(10), Variable()
 
         # approximation Cyc_{> 1} = sum_{k = 2}^K Cyc_{= k}.
         cs = sum([Cyc(z, eq(k)) for k in range(4, 24)])
@@ -401,6 +401,17 @@ class MeanTuner(unittest.TestCase):
 
         spec.run_tuner(D)
         self.assertAlmostEqual(z.value, 1.18802573842469, 5)
+
+    def test_cayley_trees(self):
+        """ Tuning of Cayley trees.
+            T = Z Set(T)."""
+
+        spec = Specification()
+        z, T = Variable(1024), Variable()
+        spec.add(T, z * Set(T))
+
+        spec.run_tuner(T)
+        self.assertAlmostEqual(z.value, 0.367879265638609, 5)
 
 class UtilsTuner(unittest.TestCase):
 
