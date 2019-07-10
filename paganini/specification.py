@@ -187,11 +187,6 @@ class Params:
             self.abstol    = 1.e-20
             self.reltol    = 1.e-20
 
-class SpecificationError(Exception):
-    """Error thrown when the system is not well-specified.
-    """
-    pass
-
 class Specification:
     """ Symbolic system specifications."""
 
@@ -222,7 +217,6 @@ class Specification:
         self._series_truncate = series_truncate
 
     def __repr__(self):
-
         return '\n'.join([
             v.__repr__() + ' = ' + self._equations[v].__repr__()
             for v in self._equations
@@ -518,33 +512,23 @@ class Specification:
             v.register(self)
 
     def _run_solver(self, var, problem, params):
-        """ Invokes the CVXPY solver.
-        Returns the error code.
-        If a solution is found, returns 0.
-        If no solution is found, returns 1.
-        """
+        """ Invokes the CVXPY solver."""
 
-        try:
-            if params.sys_type == Type.RATIONAL:
-                solution = problem.solve(solver = params.solver, verbose =
-                        params.verbose, eps = params.eps, max_iters =
-                        params.max_iters)
-            else:
-                solution = problem.solve(solver = params.solver, verbose =
-                        params.verbose, feastol = params.feastol, max_iters =
-                        params.max_iters, abstol = params.abstol, reltol =
-                        params.reltol)
-        except cvxpy.SolverError:
-            sys.stderr.write('Optimal solution is unbounded or empty. Tuning is impossible.\n')
-            return 1
-
+        if params.sys_type == Type.RATIONAL:
+            solution = problem.solve(solver = params.solver, verbose =
+                    params.verbose, eps = params.eps, max_iters =
+                    params.max_iters)
+        else:
+            solution = problem.solve(solver = params.solver, verbose =
+                    params.verbose, feastol = params.feastol, max_iters =
+                    params.max_iters, abstol = params.abstol, reltol =
+                    params.reltol)
 
         # decorate system variables
         for idx, expr in enumerate(var.value):
-            self._all_variables[idx].value = (sympy.exp(expr)).evalf()
+            self._all_variables[idx].value = sympy.exp(expr).evalf()
 
-        #return solution
-        return 0
+        return solution
 
     def run_tuner(self, t, params = None):
         """ Given the type variable and a set of tuning parameters, composes a
