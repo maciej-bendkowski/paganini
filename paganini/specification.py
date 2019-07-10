@@ -10,7 +10,7 @@ from enum import Enum
 from math import factorial
 
 # define the namespace to avoid polluting with foreign packages
-__all__ = ('Seq', 'MSet', 'Set', 'UCyc', 'Operator', 'Constraint',
+__all__ = ('Seq', 'UCyc', 'MSet', 'Set', 'Cyc', 'Operator', 'Constraint',
         'Type', 'Params', 'Specification', 'leq', 'geq', 'eq')
 
 class Seq(Variable):
@@ -108,6 +108,25 @@ class Set(Variable):
         """ Unfolds the Set definition and registers it in the given system."""
         spec._diagonal_variable(self, 1)
 
+class Cyc(Variable):
+    """ Labelled Cyc variables."""
+
+    def __init__(self, expression, constraint = None):
+        super(Cyc,self).__init__()
+
+        expression = Polynomial.cast(expression)
+        self.inner_expressions = expression
+        self.type = VariableType.TYPE # make sure its a type variable
+        self.constraint = Constraint.normalise(constraint)
+
+        if self.constraint.operator == Operator.LEQ\
+                or self.constraint.operator == Operator.GEQ:
+                    raise AttributeError("Unsupported constraint.")
+
+    def register(self, spec):
+        """ Unfolds the Cyc definition and registers it in the given system."""
+        spec._diagonal_variable(self, 1)
+
 class Operator(Enum):
     """ Enumeration of supported constraint signs."""
     LEQ       = 1 # less or equal
@@ -153,7 +172,7 @@ class Params:
     """ CVXPY solver parameters initalised with some defaults."""
 
     def __init__(self, sys_type):
-        self.verbose = False # keep verbose = True only for debug output
+        self.verbose = False
         if sys_type == Type.RATIONAL:
             self.sys_type  = Type.RATIONAL
             self.solver    = cvxpy.SCS
@@ -193,11 +212,11 @@ class Specification:
         self._ucyc_variables  = set()
 
         self._set_variables   = set()
+        self._cyc_variables   = set()
 
         # diagonals.
         self._diag     = {}
         self._msets    = {}
-
         self._sets     = {}
 
         self._series_truncate = series_truncate
@@ -248,6 +267,10 @@ class Specification:
             self._set_variables.add(v)
             self._register_expressions(v.inner_expressions)
 
+        elif isinstance(v, Cyc):
+            self._cyc_variables.add(v)
+            self._register_expressions(v.inner_expressions)
+
     def _register_expression(self, expression):
         assert isinstance(expression, Expr), 'Expected expression.'
         for v in expression.variables:
@@ -274,6 +297,7 @@ class Specification:
         if len(self._seq_variables) > 0 or\
                 len(self._mset_variables) > 0 or\
                 len(self._ucyc_variables) > 0 or\
+                len(self._cyc_variables) > 0 or\
                 len(self._set_variables) > 0:
             return Type.ALGEBRAIC
 
@@ -401,6 +425,27 @@ class Specification:
 
                 return var_d
 
+        elif var in self._cyc_variables:
+
+            if var.constraint.operator == Operator.EQ:
+                # note: constrained Cyc_{ = k}.
+
+                k = var.constraint.value
+                expr = Polynomial([self._diagonal_expr(e, d)\
+                    for e in var.inner_expressions])
+
+                self.add(var_d, (1 / k) * expr ** k)
+                return var_d
+
+            else:
+                series = []
+                for k in range(1, self._series_truncate + 1):
+                    series.append(1/k * Polynomial([self._diagonal_expr(e, d)\
+                            for e in var.inner_expressions]) ** k)
+
+                self.add(var_d, Polynomial.sum(series))
+                return var_d
+
     def add(self, var, expression):
         """ Includes the given definition in the specification."""
         expression = Polynomial.cast(expression)
@@ -467,6 +512,9 @@ class Specification:
             v.register(self)
 
         for v in self._set_variables:
+            v.register(self)
+
+        for v in self._cyc_variables:
             v.register(self)
 
     def _run_solver(self, var, problem, params):

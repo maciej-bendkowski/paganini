@@ -309,6 +309,99 @@ class MeanTuner(unittest.TestCase):
         spec.run_tuner(U)
         self.assertAlmostEqual(z.value, 1.55361625297693, 5)
 
+    def test_circular_graphs(self):
+        """ Tuning of circular graphs.
+            C = Cyc(z)."""
+
+        spec = Specification()
+        z, C = Variable(10), Variable()
+        spec.add(C, Cyc(z))
+
+        spec.run_tuner(C)
+        self.assertAlmostEqual(z.value, 1.12975951282490, 5)
+
+    def test_alignments(self):
+        """ Tuning of alignments.
+            O = Seq(Cyc(z))."""
+
+        spec = Specification()
+        z, O = Variable(10), Variable()
+        spec.add(O, Seq(Cyc(z)))
+
+        spec.run_tuner(O)
+        self.assertAlmostEqual(z.value, 0.578097783364826, 5)
+
+    def test_permutations(self):
+        """ Tuning of permutations.
+            P = Set(Cyc(z))."""
+
+        spec = Specification()
+        z, P = Variable(666), Variable()
+        spec.add(P, Set(Cyc(z)))
+
+        spec.run_tuner(P)
+        self.assertAlmostEqual(z.value, 1.28397586928450, 5)
+
+    def test_set_permutations(self):
+        """ Tuning of set permutations.
+            P = Set(Set_{>= 1}(z))."""
+
+        spec = Specification()
+        z, P = Variable(32), Variable()
+
+        # approximation Set_{>= 1} = sum_{k = 1}^K Set_{= k}.
+        s = sum([Set(z, eq(k)) for k in range(1, 20)])
+        spec.add(P, Set(s))
+
+        spec.run_tuner(P)
+        self.assertAlmostEqual(z.value, 5.25734205219187, 5)
+
+    def test_set_surjections(self):
+        """ Tuning of set surjections.
+            S = Seq(Set_{>= 1}(z))."""
+
+        spec = Specification()
+        z, S = Variable(32), Variable()
+
+        # approximation Set_{>= 1} = sum_{k = 1}^K Set_{= k}.
+        s = sum([Set(z, eq(k)) for k in range(1, 20)])
+        spec.add(S, Seq(s))
+
+        spec.run_tuner(S)
+        self.assertAlmostEqual(z.value, 0.672353796989521, 5)
+
+    def test_arrangements(self):
+        """ Tuning of arrangements.
+            A = U P
+            U = Set(z)
+            P = Seq(z)."""
+
+        spec = Specification()
+        z, A, = Variable(1024), Variable()
+        U, P  = Variable(), Variable()
+
+        spec.add(A, U * P)
+        spec.add(U, Set(z))
+        spec.add(P, Seq(z))
+
+        spec.run_tuner(A)
+        self.assertAlmostEqual(z.value, 0.999023438431325, 5)
+
+    def test_derangements(self):
+        """ Tuning of derangements.
+            D = Set(Cyc_{> 3}(z))."""
+
+        spec = Specification()
+        z, D, = Variable(10), Variable()
+
+        # approximation Cyc_{> 1} = sum_{k = 2}^K Cyc_{= k}.
+        cs = sum([Cyc(z, eq(k)) for k in range(4, 24)])
+
+        spec.add(D, Set(cs))
+
+        spec.run_tuner(D)
+        self.assertAlmostEqual(z.value, 1.18802573842469, 5)
+
 class UtilsTuner(unittest.TestCase):
 
     def test_partition_sequences(self):
