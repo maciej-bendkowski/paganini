@@ -287,6 +287,28 @@ class MeanTuner(unittest.TestCase):
         spec.run_tuner(C)
         self.assertAlmostEqual(z.value, 0.405765659263783, 5)
 
+    def test_urns(self):
+        """ Tuning of urns.
+            U = Set(Z)."""
+
+        spec = Specification()
+        z, U = Variable(18), Variable()
+        spec.add(U, Set(2 * z))
+
+        spec.run_tuner(U)
+        self.assertAlmostEqual(z.value, 9, 5)
+
+    def test_seq_urns2(self):
+        """ Tuning of sequences of bounded urns.
+            U = Seq(Set_{= 3}(Z))."""
+
+        spec = Specification()
+        z, U = Variable(5), Variable()
+        spec.add(U, Seq(Set(z, eq(3))))
+
+        spec.run_tuner(U)
+        self.assertAlmostEqual(z.value, 1.55361625297693, 5)
+
 class UtilsTuner(unittest.TestCase):
 
     def test_partition_sequences(self):

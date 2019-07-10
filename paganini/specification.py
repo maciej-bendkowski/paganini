@@ -10,7 +10,7 @@ from enum import Enum
 from math import factorial
 
 # define the namespace to avoid polluting with foreign packages
-__all__ = ('Seq', 'MSet', 'UCyc', 'Operator', 'Constraint',
+__all__ = ('Seq', 'MSet', 'Set', 'UCyc', 'Operator', 'Constraint',
         'Type', 'Params', 'Specification', 'leq', 'geq', 'eq')
 
 class Seq(Variable):
@@ -87,6 +87,25 @@ class UCyc(Variable):
 
     def register(self, spec):
         """ Unfolds the UCyc definition and registers it in the given system."""
+        spec._diagonal_variable(self, 1)
+
+class Set(Variable):
+    """ Labelled Set variables."""
+
+    def __init__(self, expression, constraint = None):
+        super(Set,self).__init__()
+
+        expression = Polynomial.cast(expression)
+        self.inner_expressions = expression
+        self.type = VariableType.TYPE # make sure its a type variable
+        self.constraint = Constraint.normalise(constraint)
+
+        if self.constraint.operator == Operator.LEQ\
+                or self.constraint.operator == Operator.GEQ:
+                    raise AttributeError("Unsupported constraint.")
+
+    def register(self, spec):
+        """ Unfolds the Set definition and registers it in the given system."""
         spec._diagonal_variable(self, 1)
 
 class Operator(Enum):
@@ -171,11 +190,15 @@ class Specification:
 
         self._seq_variables   = set()
         self._mset_variables  = set()
-        self._cyc_variables   = set()
+        self._ucyc_variables  = set()
+
+        self._set_variables   = set()
 
         # diagonals.
         self._diag     = {}
         self._msets    = {}
+
+        self._sets     = {}
 
         self._series_truncate = series_truncate
 
@@ -218,7 +241,11 @@ class Specification:
             self._register_expressions(v.inner_expressions)
 
         elif isinstance(v, UCyc):
-            self._cyc_variables.add(v)
+            self._ucyc_variables.add(v)
+            self._register_expressions(v.inner_expressions)
+
+        elif isinstance(v, Set):
+            self._set_variables.add(v)
             self._register_expressions(v.inner_expressions)
 
     def _register_expression(self, expression):
@@ -246,7 +273,8 @@ class Specification:
 
         if len(self._seq_variables) > 0 or\
                 len(self._mset_variables) > 0 or\
-                len(self._cyc_variables) > 0:
+                len(self._ucyc_variables) > 0 or\
+                len(self._set_variables) > 0:
             return Type.ALGEBRAIC
 
         for expressions in self._equations.values():
@@ -339,7 +367,7 @@ class Specification:
 
                 return var_d
 
-        elif var in self._cyc_variables:
+        elif var in self._ucyc_variables:
             if var.constraint.operator == Operator.EQ:
                 # note: constrained Cyc_{ = k}.
 
@@ -352,6 +380,24 @@ class Specification:
                         series.append((phi(i) / k) * expr ** (k // i))
 
                 self.add(var_d, Polynomial.sum(series))
+
+                return var_d
+
+        elif var in self._set_variables:
+
+            if var.constraint.operator == Operator.EQ:
+                # note: constrained Set_{ = k}.
+
+                k = var.constraint.value
+                expr = Polynomial([self._diagonal_expr(e, d)\
+                    for e in var.inner_expressions])
+
+                self.add(var_d, (1 / (factorial(k))) * expr ** k)
+                return var_d
+
+            else:
+                self._sets[var_d] = [Polynomial([self._diagonal_expr(e, d)\
+                    for e in var.inner_expressions])]
 
                 return var_d
 
@@ -391,6 +437,16 @@ class Specification:
             # cvxpy.sum is not supported in Python2
             constraints.append(variables[v.idx] >= sum(xs))
 
+        # Set variable constraints.
+        for v in self._sets:
+            xs, rhs = [],  self._sets[v]
+            for i, e in enumerate(rhs):
+                matrix, coeffs, constant_term = e.specification(n)
+                exponents = matrix * variables + coeffs
+                xs.append(sum(exponents))
+
+            constraints.append(variables[v.idx] >= cvxpy.exp(sum(xs)))
+
         return constraints
 
     def _unfold_variables(self):
@@ -406,8 +462,11 @@ class Specification:
         for v in self._mset_variables:
             v.register(self)
 
-        for v in self._cyc_variables.copy():
+        for v in self._ucyc_variables.copy():
             # same argument as for seq.
+            v.register(self)
+
+        for v in self._set_variables:
             v.register(self)
 
     def _run_solver(self, var, problem, params):
