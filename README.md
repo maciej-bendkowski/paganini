@@ -51,51 +51,10 @@ sp.run_tuner(M)
 Here `z` and `u` are two *marking variables* standing for the tree size and the number of unary nodes, respectively. Once we run the tuner, all three variables are decorated with respective numerical values, which the user can then use to compute respective branching probabilities. A sampler designed with such values is *guaranteed* to output Motzkin trees for which the expected size and mean number of unary nodes obey the design specification.
 
 ### Examples
-Paganini is under constant development, supporting a growing class of so-called admissible constructors. Below you can find a handful of examples supported by Paganini. For more specifications, please visit our `tests` folder.
+Paganini is under constant development, supporting a growing class of so-called admissible constructors.
+For more specifications, please visit our
 
-```
-""" Polya trees
-    T = Z * MSET(T)."""
-
-spec = Specification()
-z, T = Variable(), Variable()
-spec.add(T, z * MSet(T))
-
-spec.run_singular_tuner(z)
-
-self.assertAlmostEqual(z.value, 0.338322112871298)
-self.assertAlmostEqual(T.value, 1)
-```
-
-```
-""" Cyclic compositions.
-    C = CYC(Z * SEQ(Z))."""
-
-spec = Specification()
-z, C = Variable(), Variable()
-spec.add(C, Cyc(z * Seq(z)))
-
-spec.run_singular_tuner(z)
-self.assertAlmostEqual(z.value, 0.5, 5)
-```
-
-```
-""" Unlabelled functional graphs.
-    F = MSet(K)
-    K = CYC(U)
-    U = Z * MSet(U)."""
-
-spec = Specification()
-z, F = Variable(), Variable()
-K, U = Variable(), Variable()
-
-spec.add(F, MSet(K))
-spec.add(K, Cyc(U))
-spec.add(U, z * MSet(U))
-
-spec.run_singular_tuner(z)
-self.assertAlmostEqual(z.value, 0.3383218568992077, 5)
-```
+[Online tutorial](https://paganini.readthedocs.io/en/latest/tutorial.html)
 
 ### Installation
 Paganini is available as a pip package.
