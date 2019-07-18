@@ -217,6 +217,17 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.355181762886292, 5)
 
+    def test_custom_singular_btrees(self):
+        """ Singular, custom btrees."""
+
+        spec = Specification()
+        z, a, b, T = Variable(), Variable(0.5), Variable(0.5), Variable()
+        spec.add(T, z * (a + b) + T * T)
+
+        spec.run_singular_tuner(z)
+        self.assertAlmostEqual(z.value, 0.249999999878295, 5)
+
+
 class MeanTuner(unittest.TestCase):
 
     def test_motzkin_trees(self):

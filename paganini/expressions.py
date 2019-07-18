@@ -36,6 +36,9 @@ class Expr(object):
 
     def __mul__(self, other):
         """ Multiplication of algebraic expressions."""
+        if isinstance(other, Polynomial):
+            return Polynomial(self) * other
+
         other = Expr.cast(other)
 
         # a^b * a^c = a^(b + c)
