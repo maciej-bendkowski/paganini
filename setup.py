@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "paganini",
-    version = "1.2.0",
+    version = "1.2.1",
 
     author = "Maciej Bendkowski, Sergey Dovgal",
     author_email = "maciej.bendkowski@tcs.uj.edu.pl, vit.north@gmail.com",
