@@ -442,6 +442,12 @@ class UtilsTuner(unittest.TestCase):
 
 class ExpressionsTest(unittest.TestCase):
 
+    def assertExprEqual(self, x, y):
+        self.assertIsInstance(x, Expr)
+        self.assertIsInstance(y, Expr)
+        self.assertEqual(x.coeff, y.coeff)
+        self.assertEqual(x.variables, y.variables)
+
     def test_related_expressions(self):
         x, y, z = Variable(), Variable(), Variable()
 
@@ -450,6 +456,13 @@ class ExpressionsTest(unittest.TestCase):
         self.assertFalse(x.related(x * x))
         self.assertTrue((x * y).related(y * x))
         self.assertFalse((x * y * z).related(y * x))
+
+    def test_exponentiation(self):
+        x = Variable()
+
+        self.assertExprEqual(x ** 0, Expr(1))
+        self.assertExprEqual(x ** 1, x)
+        self.assertExprEqual(x ** 3, x * x * x)
 
 if __name__ == '__main__':
     unittest.main()

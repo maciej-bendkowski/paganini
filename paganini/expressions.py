@@ -49,7 +49,10 @@ class Expr(object):
 
     def __pow__(self, n):
         """ Expression exponentiation."""
-        assert n > 0, 'Non-positive exponent.'
+        assert n >= 0, 'negative exponent.'
+
+        if n == 0:
+            return Expr(coeff=1, variables=Counter())
 
         xs = Counter(self.variables)
         for v in self.variables:
