@@ -1,7 +1,12 @@
 About
 =====
 
-Maciej Bendkowski is working Department of Theoretical Computer Science at Jagiellonian University in Kraków
+Maciej Bendkowski
 
-Sergey Dovgal is receiving his PhD in University Paris-13.
+Theoretical Computer Science Department
+Jagiellonian University in Kraków, Poland.
 
+Sergey Dovgal
+
+Université Paris 13
+Laboratoire d'Informatique de Paris Nord.

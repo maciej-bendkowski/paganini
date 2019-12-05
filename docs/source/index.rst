@@ -10,7 +10,10 @@ Paganini's documentation
 `Paganini` is a lightweight python library for tuning multiparametric
 combinatorial specifications.
 
-Given a combinatorial specification, expressed using a domain-specific language closely resembling Flajolet and Sedgewick's *symbolic method*, Paganini gives its users some additional control over the distribution of structures constructed using the designed samplers.
+Given a combinatorial specification, expressed using a domain-specific language
+closely resembling Flajolet and Sedgewick's *symbolic method*, Paganini gives
+its users some additional control over the distribution of structures
+constructed using the designed samplers.
 
 .. toctree::
    :maxdepth: 2
