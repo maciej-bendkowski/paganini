@@ -11,7 +11,7 @@ setup(
 
     license = "BSD3",
     url = "https://github.com/maciej-bendkowski/paganini",
-    install_requires = ['numpy', 'sympy', 'cvxpy', 'scipy'],
+    install_requires = ['numpy', 'sympy', 'cvxpy', 'scipy', 'networkx'],
     packages = find_packages(),
 
     # unit tests

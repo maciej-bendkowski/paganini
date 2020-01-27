@@ -1,6 +1,7 @@
 import cvxpy
 import sympy
 import numpy as np
+import networkx as nx
 
 from paganini.utils import phi, partition_sequences
 from paganini.expressions import *
@@ -198,6 +199,7 @@ class Specification:
 
         self._index_counter = 0
         self._equations = {}
+        self._graph = nx.DiGraph()
 
         self._all_variables   = {}
         self._tuned_variables = set()
@@ -232,7 +234,7 @@ class Specification:
         """ Number of variables discharged in the system."""
         return self._index_counter
 
-    def _register_variable(self, v):
+    def _register_variable(self, v, source = None):
         """ Registers the given variable in the specification."""
 
         if v.idx is not None:
@@ -240,6 +242,8 @@ class Specification:
 
         v.idx = self._next_idx()
         self._all_variables[v.idx] = v
+        if source is not None:
+            self._add_dependency(source, v)
 
         if v.tuning_param is not None:
             self._tuned_variables.add(v)
@@ -247,35 +251,35 @@ class Specification:
         # case over the variable's type
         if isinstance(v, Seq):
             self._seq_variables.add(v)
-            self._register_expressions(v.inner_expressions)
+            self._register_expressions(v.inner_expressions, v)
 
         elif isinstance(v, MSet):
             self._mset_variables.add(v)
-            self._register_expressions(v.inner_expressions)
+            self._register_expressions(v.inner_expressions, v)
 
         elif isinstance(v, UCyc):
             self._ucyc_variables.add(v)
-            self._register_expressions(v.inner_expressions)
+            self._register_expressions(v.inner_expressions, v)
 
         elif isinstance(v, Set):
             self._set_variables.add(v)
-            self._register_expressions(v.inner_expressions)
+            self._register_expressions(v.inner_expressions, v)
 
         elif isinstance(v, Cyc):
             self._cyc_variables.add(v)
-            self._register_expressions(v.inner_expressions)
+            self._register_expressions(v.inner_expressions, v)
 
-    def _register_expression(self, expression):
+    def _register_expression(self, expression, var = None):
         assert isinstance(expression, Expr), 'Expected expression.'
         for v in expression.variables:
-            self._register_variable(v)
+            self._register_variable(v, var)
 
-    def _register_expressions(self, expressions):
+    def _register_expressions(self, expressions, var = None):
         if isinstance(expressions, Expr):
-            self._register_expression(expressions)
+            self._register_expression(expressions, var)
         else:
             for expr in expressions:
-                self._register_expression(expr)
+                self._register_expression(expr, var)
 
     def _type_variable(self):
         """ Discharges a fresh variable."""
@@ -440,6 +444,13 @@ class Specification:
                 self.add(var_d, Polynomial.sum(series))
                 return var_d
 
+    def _add_dependency(self, source, target):
+        """ Connects variable 'source' to its dependency 'target'.
+        Note: We assume that both variables are already registered in the specification. """
+        self._graph.add_node(source.idx) # no multiple nodes.
+        self._graph.add_node(target.idx)
+        self._graph.add_edge(source.idx, target.idx) # no multiple edges.
+
     def add(self, var, expression):
         """ Includes the given definition in the specification."""
         expression = Polynomial.cast(expression)
@@ -448,7 +459,20 @@ class Specification:
 
         # register variables in the system.
         self._register_variable(var)
-        self._register_expressions(expression)
+        self._register_expressions(expression, var)
+
+    def _check_system(self, param):
+        """ Checks if the system meets the theoretical requirements
+        to be tuned using a singular tuner. If it does not, an appropriate
+        run-time error is thrown."""
+
+        # unreachable nodes (note that nx.descendants ignores the source in its outcome)
+        ds = set(nx.shortest_path_length(self._graph, source=param.idx).keys())
+        xs = set(self._graph).difference(ds)
+        if len(xs) != 0:
+            raise RuntimeError("Unreachable nodes: " + repr(xs))
+
+        return True
 
     def _compose_constraints(self, variables, n):
         """ Composes optimisation constraints."""
@@ -583,11 +607,12 @@ class Specification:
         problem   = cvxpy.Problem(objective, constraints)
         return self._run_solver(variables, problem, params)
 
-    def run_singular_tuner(self, z, params = None):
-        """ Given a (size) variable and a set of tuning parameters, composes an
-        optimisation problem corresponding to an approximate sampler meant for
-        structures of the given type. Variables are tuned so to achieve (in
-        expectation) the marked variable frequencies.
+    def run_singular_tuner(self, z, t, params = None):
+        """ Given a (size) variable, target type (to be sampled from), and a
+        set of tuning parameters, composes an optimisation problem
+        corresponding to an approximate sampler meant for structures of the
+        given type. Variables are tuned so to achieve (in expectation) the
+        marked variable frequencies.
 
         Consider the following example:
 
@@ -596,7 +621,7 @@ class Specification:
           >>> sp.add(M, z + u * z * M + z * M **2)
           >>>
           >>> params = Params(Type.ALGEBRAIC)
-          >>> sp.run_singular_tuner(z, params)
+          >>> sp.run_singular_tuner(z, M, params)
 
         Here, the variable u is marked with a *frequency* 0.4.  The type M
         represents the type of Motzkin trees, i.e. unary-binary plane trees.
@@ -616,6 +641,9 @@ class Specification:
 
         # register unfoldable variables
         self._unfold_variables()
+
+        # check theoretical requirements
+        self._check_system(t)
 
         n = self.discharged_variables
         variables = cvxpy.Variable(n)
