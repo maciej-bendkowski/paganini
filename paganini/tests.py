@@ -449,6 +449,21 @@ class MeanTuner(unittest.TestCase):
         self.assertAlmostEqual(Tree.value, 0.5, 5)
         self.assertAlmostEqual(Forest.value, 2, 5)
 
+    def test_near_singular_forests(self):
+        """ Singular forests with 'unreachable' trees. """
+
+        spec = Specification()
+        z, Tree, Forest = Variable(), Variable(), Variable()
+
+        spec.add(Forest, Seq(Tree))
+        spec.add(Tree, z + Tree * Tree)
+
+        spec.run_singular_tuner(z)
+
+        self.assertAlmostEqual(z.value, 0.25, 5)
+        self.assertAlmostEqual(Tree.value, 0.5, 5)
+        self.assertAlmostEqual(Forest.value, 2, 5)
+
     def test_finite_binary_words(self):
         """ Tuning of binary words.
             B = SEQ(Z + Z). """

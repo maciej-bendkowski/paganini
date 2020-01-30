@@ -425,7 +425,6 @@ class Specification:
                     self._msets[var_d].append(Polynomial([self._diagonal_expr(e, k)\
                             for e in var.inner_expressions]))
 
-                # self._build_dg(var_d, Polynomial.sum(self._msets[var_d]))
                 return var_d
 
         elif var in self._ucyc_variables:
@@ -459,7 +458,6 @@ class Specification:
                 self._sets[var_d] = [Polynomial([self._diagonal_expr(e, d)\
                     for e in var.inner_expressions])]
 
-                # self.add(var_d, Polynomial.sum(self._sets[var_d]))
                 return var_d
 
         elif var in self._cyc_variables:
