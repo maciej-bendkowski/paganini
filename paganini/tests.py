@@ -14,8 +14,7 @@ class SingularTuner(unittest.TestCase):
         z, B = Variable(), Variable()
         spec.add(B, 1 + z * B ** 2)
 
-        spec.run_singular_tuner(z, B)
-
+        spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.25)
         self.assertAlmostEqual(B.value, 2)
 
@@ -27,7 +26,7 @@ class SingularTuner(unittest.TestCase):
         z, M = Variable(), Variable()
         spec.add(M, z * Seq(M, leq(2)))
 
-        spec.run_singular_tuner(z, M)
+        spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.333333333333334)
         self.assertAlmostEqual(M.value, 1.0)
@@ -40,7 +39,7 @@ class SingularTuner(unittest.TestCase):
         z, M = Variable(), Variable()
         spec.add(M, z + z * M + z * M ** 2)
 
-        spec.run_singular_tuner(z, M)
+        spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.333333333333334)
         self.assertAlmostEqual(M.value, 1.0)
@@ -53,7 +52,7 @@ class SingularTuner(unittest.TestCase):
         z, T = Variable(), Variable()
         spec.add(T, z * Seq(T))
 
-        spec.run_singular_tuner(z, T)
+        spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.25)
         self.assertAlmostEqual(T.value, 0.5)
@@ -67,7 +66,7 @@ class SingularTuner(unittest.TestCase):
         spec.add(L, D + z * L + z * L ** 2)
         spec.add(D, z + z * D)
 
-        spec.run_singular_tuner(z, L)
+        spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.295597742522085)
         self.assertAlmostEqual(L.value, 1.19148788395312)
@@ -80,7 +79,7 @@ class SingularTuner(unittest.TestCase):
         z, L = Variable(), Variable()
         spec.add(L, z * Seq(z) + z * L + z * L ** 2)
 
-        spec.run_singular_tuner(z, L)
+        spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.295597742522085)
         self.assertAlmostEqual(L.value, 1.19148788395312)
@@ -90,13 +89,13 @@ class SingularTuner(unittest.TestCase):
             T = Z * MSet(T)."""
 
         spec = Specification()
-        z, T = Variable(), Variable()
+        z, T = Variable(200000), Variable()
         spec.add(T, z * MSet(T))
 
-        spec.run_singular_tuner(z, T)
+        spec.run_tuner(T)
 
         self.assertAlmostEqual(z.value, 0.338322112871298, 5)
-        self.assertAlmostEqual(T.value, 1)
+        self.assertAlmostEqual(T.value, 0.999993919977244)
 
     def test_singular_custom_trees(self):
         """ Singular tuning of some custom trees defined by
@@ -109,7 +108,7 @@ class SingularTuner(unittest.TestCase):
         z, T = Variable(), Variable()
         spec.add(T, z + z * Seq(T, geq(2)))
 
-        spec.run_singular_tuner(z, T, params)
+        spec.run_singular_tuner(z, params)
 
         self.assertAlmostEqual(z.value, 0.333333333333335)
         self.assertAlmostEqual(T.value, 0.499999999999993)
@@ -122,7 +121,7 @@ class SingularTuner(unittest.TestCase):
         z, B = Variable(), Variable()
         spec.add(B, Seq(z + z))
 
-        spec.run_singular_tuner(z, B)
+        spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.5, 5)
 
     def test_compositions(self):
@@ -136,7 +135,7 @@ class SingularTuner(unittest.TestCase):
         z, C = Variable(), Variable()
         spec.add(C, Seq(z * Seq(z)))
 
-        spec.run_singular_tuner(z, C, params)
+        spec.run_singular_tuner(z, params)
         self.assertAlmostEqual(z.value, 0.5, 4)
 
     def test_compositions_with_restricted_summands(self):
@@ -147,7 +146,7 @@ class SingularTuner(unittest.TestCase):
         z, C = Variable(), Variable()
         spec.add(C, Seq(z + z**2))
 
-        spec.run_singular_tuner(z, C)
+        spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.618034527351341, 5) # golden ratio
 
     def test_singular_partitions(self):
@@ -155,14 +154,13 @@ class SingularTuner(unittest.TestCase):
             P = MSET(SEQ_{k >= 1}(Z))."""
 
         params = Params(Type.ALGEBRAIC)
-        params.max_iters = 1000 # required
 
         spec = Specification()
-        z, P = Variable(), Variable()
+        z, P = Variable(200000), Variable()
         spec.add(P, MSet(z * Seq(z)))
 
-        spec.run_singular_tuner(z, P, params)
-        self.assertAlmostEqual(z.value, 0.999992520391430, 5)
+        spec.run_tuner(P, params)
+        self.assertAlmostEqual(z.value, 0.997247023094167, 5)
 
     def test_minus_constant(self):
 
@@ -170,7 +168,7 @@ class SingularTuner(unittest.TestCase):
         z, T = Variable(), Variable()
         spec.add(T, Seq(2*z) - 1)
 
-        spec.run_singular_tuner(z, T)
+        spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.5, 5)
 
     def test_minus_constant2(self):
@@ -180,7 +178,7 @@ class SingularTuner(unittest.TestCase):
         spec.add(T, z - 2 * T)
 
         try:
-            spec.run_singular_tuner(z, T)
+            spec.run_singular_tuner(z)
         except ValueError:
             self.assertTrue(z.value is None)
 
@@ -192,29 +190,42 @@ class SingularTuner(unittest.TestCase):
         z, T = Variable(), Variable()
         spec.add(T, 1 + z * Seq(T, eq(3)))
 
-        spec.run_singular_tuner(z, T)
+        spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.148148148148149, 5)
 
     def test_otter_trees(self):
         """ Singular Otter trees.
             T = 1 + Z * MSet_{ = 2}(T)."""
 
+        with self.assertRaises(ValueError):
+            spec = Specification()
+            z, T = Variable(), Variable()
+            spec.add(T, 1 + z * MSet(T, eq(2)))
+            spec.run_singular_tuner(z)
+
         spec = Specification()
-        z, T = Variable(), Variable()
+        z, T = Variable(1000000), Variable()
         spec.add(T, 1 + z * MSet(T, eq(2)))
 
-        spec.run_singular_tuner(z, T)
+        spec.run_tuner(T)
         self.assertAlmostEqual(z.value, 0.4026975, 5)
 
     def test_otter_trees2(self):
         """ Singular Otter trees.
             T = 1 + Z * MSet_{ = 3}(T)."""
 
+        with self.assertRaises(ValueError):
+            spec = Specification()
+            z, T = Variable(), Variable()
+            spec.add(T, 1 + z * MSet(T, eq(3)))
+            spec.run_singular_tuner(z)
+
         spec = Specification()
         z, T = Variable(), Variable()
         spec.add(T, 1 + z * MSet(T, eq(3)))
 
-        spec.run_singular_tuner(z, T)
+        # note: Method.JEDI is not necessary here.
+        spec.run_singular_tuner(z, method = Method.JEDI)
         self.assertAlmostEqual(z.value, 0.355181762886292, 5)
 
     def test_custom_singular_btrees(self):
@@ -224,37 +235,8 @@ class SingularTuner(unittest.TestCase):
         z, a, b, T = Variable(), Variable(0.5), Variable(0.5), Variable()
         spec.add(T, z * (a + b) + T * T)
 
-        spec.run_singular_tuner(z, T)
+        spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.249999999878295, 5)
-
-    def test_singular_forests_broken(self):
-        """ Singular forests with 'unreachable' trees. """
-
-        spec = Specification()
-        z, Tree, Forest = Variable(), Variable(), Variable()
-
-        spec.add(Forest, Seq(Tree))
-        spec.add(Tree, z + Tree * Tree)
-
-        with self.assertRaises(RuntimeError):
-            spec.run_singular_tuner(z, Tree)
-
-    def test_singular_forests(self):
-        """ Singular forests with 'unreachable' trees. """
-
-        spec = Specification()
-        z, Tree, Forest = Variable(), Variable(), Variable()
-
-        spec.add(Forest, Seq(Tree))
-        spec.add(Tree, z + Tree * Tree)
-
-        spec.run_singular_tuner(z, Forest)
-        print(spec._graph.nodes())
-        print(spec._graph.edges())
-
-        self.assertAlmostEqual(z.value, 0.25, 5)
-        self.assertAlmostEqual(Tree.value, 0.5, 5)
-        self.assertAlmostEqual(Forest.value, 2.0, 5)
 
 class MeanTuner(unittest.TestCase):
 
@@ -309,7 +291,7 @@ class MeanTuner(unittest.TestCase):
         spec.add(D, z + z * D)
 
         params = Params(Type.ALGEBRAIC)
-        spec.run_singular_tuner(z, L, params)
+        spec.run_singular_tuner(z, params)
 
         self.assertAlmostEqual(z.value, 0.244827373512259)
         self.assertAlmostEqual(u.value, 1.78303233505684)
@@ -452,6 +434,58 @@ class MeanTuner(unittest.TestCase):
         spec.run_tuner(T)
         self.assertAlmostEqual(z.value, 0.367879265638609, 5)
 
+    def test_near_singular_forests_broken(self):
+        """ Singular forests with 'unreachable' trees. """
+
+        spec = Specification()
+        z, Tree, Forest = Variable(1000000), Variable(), Variable()
+
+        spec.add(Forest, Seq(Tree))
+        spec.add(Tree, z + Tree * Tree)
+
+        spec.run_tuner(Forest)
+
+        self.assertAlmostEqual(z.value, 0.25, 5)
+        self.assertAlmostEqual(Tree.value, 0.5, 5)
+        self.assertAlmostEqual(Forest.value, 2, 5)
+
+    def test_finite_binary_words(self):
+        """ Tuning of binary words.
+            B = SEQ(Z + Z). """
+
+        spec = Specification()
+        z, B = Variable(100000), Variable()
+        spec.add(B, Seq(z + z))
+
+        spec.run_tuner(B)
+        self.assertAlmostEqual(z.value, 0.5, 5)
+
+    def test_non_reachable_states(self):
+        """ Specification with unreachable states. """
+
+        with self.assertRaises(ValueError):
+            spec = Specification()
+            z, T1, T2 = Variable(5000), Variable(), Variable()
+
+            spec.add(T1, 1 + z * T1**2)
+            spec.add(T2, 1 + z * T1**2 + z * T2**3)
+
+            spec.run_tuner(T1)
+
+    def test_non_reachable_states2(self):
+        """ Specification with unreachable states.
+        Tuned in the 'proper' way. """
+
+        spec = Specification()
+        z, T1, T2 = Variable(100000), Variable(), Variable()
+
+        spec.add(T1, 1 + z * T1**2)
+        spec.add(T2, 1 + z * T1**2 + z * T2**3)
+
+        spec._check_singular_tuner()
+        spec.run_tuner(T2)
+        self.assertAlmostEqual(z.value, 0.112382934442027, 5)
+
 class UtilsTuner(unittest.TestCase):
 
     def test_partition_sequences(self):
@@ -491,6 +525,15 @@ class ExpressionsTest(unittest.TestCase):
         self.assertExprEqual(x ** 0, Expr(1))
         self.assertExprEqual(x ** 1, x)
         self.assertExprEqual(x ** 3, x * x * x)
+
+    def test_polynomial_variable_check(self):
+
+        x = Variable()
+        px = Polynomial.cast(x)
+        self.assertTrue(px.is_variable())
+
+        py = Polynomial.cast(x + 2 * x)
+        self.assertFalse(py.is_variable())
 
 if __name__ == '__main__':
     unittest.main()

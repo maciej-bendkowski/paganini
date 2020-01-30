@@ -12,7 +12,7 @@ from math import factorial
 
 # define the namespace to avoid polluting with foreign packages
 __all__ = ('Seq', 'UCyc', 'MSet', 'Set', 'Cyc', 'Operator', 'Constraint',
-        'Type', 'Params', 'Specification', 'leq', 'geq', 'eq')
+           'Type', 'Params', 'Method', 'Specification', 'leq', 'geq', 'eq')
 
 class Seq(Variable):
     """ Sequence variables."""
@@ -188,6 +188,12 @@ class Params:
             self.abstol    = 1.e-20
             self.reltol    = 1.e-20
 
+class Method(Enum):
+    """ Enumeration of supported method flags. See specification.run_singular_tuner."""
+    STRICT       = 1 # disable heuristics
+    HEURISTIC    = 2 # enable heuristics
+    JEDI         = 3 # force method, skipping theoretical checks
+
 class Specification:
     """ Symbolic system specifications."""
 
@@ -234,7 +240,7 @@ class Specification:
         """ Number of variables discharged in the system."""
         return self._index_counter
 
-    def _register_variable(self, v, source = None):
+    def _register_variable(self, v):
         """ Registers the given variable in the specification."""
 
         if v.idx is not None:
@@ -242,8 +248,6 @@ class Specification:
 
         v.idx = self._next_idx()
         self._all_variables[v.idx] = v
-        if source is not None:
-            self._add_dependency(source, v)
 
         if v.tuning_param is not None:
             self._tuned_variables.add(v)
@@ -251,35 +255,35 @@ class Specification:
         # case over the variable's type
         if isinstance(v, Seq):
             self._seq_variables.add(v)
-            self._register_expressions(v.inner_expressions, v)
+            self._register_expressions(v.inner_expressions)
 
         elif isinstance(v, MSet):
             self._mset_variables.add(v)
-            self._register_expressions(v.inner_expressions, v)
+            self._register_expressions(v.inner_expressions)
 
         elif isinstance(v, UCyc):
             self._ucyc_variables.add(v)
-            self._register_expressions(v.inner_expressions, v)
+            self._register_expressions(v.inner_expressions)
 
         elif isinstance(v, Set):
             self._set_variables.add(v)
-            self._register_expressions(v.inner_expressions, v)
+            self._register_expressions(v.inner_expressions)
 
         elif isinstance(v, Cyc):
             self._cyc_variables.add(v)
-            self._register_expressions(v.inner_expressions, v)
+            self._register_expressions(v.inner_expressions)
 
-    def _register_expression(self, expression, var = None):
+    def _register_expression(self, expression):
         assert isinstance(expression, Expr), 'Expected expression.'
         for v in expression.variables:
-            self._register_variable(v, var)
+            self._register_variable(v)
 
-    def _register_expressions(self, expressions, var = None):
+    def _register_expressions(self, expressions):
         if isinstance(expressions, Expr):
-            self._register_expression(expressions, var)
+            self._register_expression(expressions)
         else:
             for expr in expressions:
-                self._register_expression(expr, var)
+                self._register_expression(expr)
 
     def _type_variable(self):
         """ Discharges a fresh variable."""
@@ -287,6 +291,41 @@ class Specification:
         v.type = VariableType.TYPE
         self._register_variable(v)
         return v
+
+    def _build_dg_variable(self, source, var):
+        assert isinstance(var, Variable), 'Expected variable.'
+        self._add_dependency(source, var)
+        if hasattr(var, 'inner_expressions'):
+            self._build_dg(var, var.inner_expressions)
+
+        # case over the variable's type adding dependencies
+        # between 'var' and its (truncated) series variables.
+        if isinstance(var, MSet) and var in self._msets:
+            self._build_dg(var, Polynomial.sum(self._msets[var]))
+
+        if isinstance(var, Set) and var in self._sets:
+            self._build_dg(var, Polynomial.sum(self._sets[var]))
+
+    def _build_dg_expr(self, source, expr):
+        assert isinstance(expr, Expr), 'Expected expression.'
+        for v in expr.variables:
+            self._build_dg_variable(source, v)
+
+    def _build_dg(self, source, expressions):
+        if isinstance(expressions, Expr):
+            self._build_dg_expr(source, expressions)
+        else:
+            for expr in expressions:
+                self._build_dg_expr(source, expr)
+
+    def _build_dependency_graph(self):
+
+        if len(self._graph) > 0:
+            return # do nothing if already built
+
+        for v in self._equations:
+            rhs = self._equations[v]
+            self._build_dg(v, rhs)
 
     def check_type(self):
         """ Checks if the system is algebraic or rational.
@@ -378,7 +417,6 @@ class Specification:
                         series.append(product)
 
                 self.add(var_d, Polynomial.sum(series))
-
                 return var_d
 
             else:
@@ -387,6 +425,7 @@ class Specification:
                     self._msets[var_d].append(Polynomial([self._diagonal_expr(e, k)\
                             for e in var.inner_expressions]))
 
+                # self._build_dg(var_d, Polynomial.sum(self._msets[var_d]))
                 return var_d
 
         elif var in self._ucyc_variables:
@@ -402,7 +441,6 @@ class Specification:
                         series.append((phi(i) / k) * expr ** (k // i))
 
                 self.add(var_d, Polynomial.sum(series))
-
                 return var_d
 
         elif var in self._set_variables:
@@ -421,6 +459,7 @@ class Specification:
                 self._sets[var_d] = [Polynomial([self._diagonal_expr(e, d)\
                     for e in var.inner_expressions])]
 
+                # self.add(var_d, Polynomial.sum(self._sets[var_d]))
                 return var_d
 
         elif var in self._cyc_variables:
@@ -445,11 +484,15 @@ class Specification:
                 return var_d
 
     def _add_dependency(self, source, target):
-        """ Connects variable 'source' to its dependency 'target'.
-        Note: We assume that both variables are already registered in the specification. """
-        self._graph.add_node(source.idx) # no multiple nodes.
-        self._graph.add_node(target.idx)
-        self._graph.add_edge(source.idx, target.idx) # no multiple edges.
+        """ Connects variable 'source' to its dependency 'target'. If source is
+        None, no dependency is formed. Note: We assume that both variables are
+        already registered in the specification.
+        """
+
+        if source is not None:
+            self._graph.add_node(source.idx) # no multiple nodes.
+            self._graph.add_node(target.idx)
+            self._graph.add_edge(source.idx, target.idx) # no multiple edges.
 
     def add(self, var, expression):
         """ Includes the given definition in the specification."""
@@ -457,22 +500,23 @@ class Specification:
         var.type = VariableType.TYPE # make var a type variable
         self._equations[var] = expression
 
+
         # register variables in the system.
         self._register_variable(var)
-        self._register_expressions(expression, var)
+        self._register_expressions(expression)
 
-    def _check_system(self, param):
-        """ Checks if the system meets the theoretical requirements
-        to be tuned using a singular tuner. If it does not, an appropriate
-        run-time error is thrown."""
+    def _is_synonym_variable(self, v):
 
-        # unreachable nodes (note that nx.descendants ignores the source in its outcome)
-        ds = set(nx.shortest_path_length(self._graph, source=param.idx).keys())
-        xs = set(self._graph).difference(ds)
-        if len(xs) != 0:
-            raise RuntimeError("Unreachable nodes: " + repr(xs))
+        if v not in self._equations:
+            return False
 
-        return True
+        if v.idx not in self._graph:
+            return False
+
+        if self._graph.in_degree(v.idx) != 0:
+            return False
+
+        return self._equations[v].is_variable()
 
     def _compose_constraints(self, variables, n):
         """ Composes optimisation constraints."""
@@ -483,8 +527,13 @@ class Specification:
             matrix, coeffs, constant_term = rhs.specification(n)
 
             exponents = matrix * variables + coeffs
-            constraints.append(variables[v.idx] >=
-                cvxpy.log_sum_exp(exponents) + constant_term)
+            if self._is_synonym_variable(v):
+
+                x = self._equations[v]._expressions[0]
+                constraints.append(variables[x.idx] == variables[v.idx])
+            else:
+                constraints.append(variables[v.idx] >=
+                    cvxpy.log_sum_exp(exponents) + constant_term)
 
         # MSet variable constraints.
         for v in self._msets:
@@ -554,7 +603,38 @@ class Specification:
 
         return solution
 
-    def run_tuner(self, t, params = None):
+    def _check_finite_tuner(self, target):
+        """ Given the target variable, constructs the associated dependency
+        graph and checks if necessary theoretical conditions for finite-size
+        tuning are met."""
+
+        self._build_dependency_graph()
+        all = set(self._graph.nodes)
+        reachable = set(nx.shortest_path_length(self._graph,
+                                                source=target.idx).keys())
+
+        return len(all - reachable) == 0
+
+    def _check_singular_tuner(self):
+        """ Constructs the associated dependency graph and checks if
+        necessary theoretical conditions for singular tuning are met."""
+
+        self._build_dependency_graph()
+        d = dict(nx.shortest_path_length(self._graph))
+        for v1 in self._equations:
+            for v2 in self._equations:
+                if v2.idx not in d[v1.idx]:
+                    return False
+
+        return True
+
+    def _candidate_target_variables(self):
+
+        self._build_dependency_graph()
+        return [v for v in self._equations
+                if self._check_finite_tuner(v)]
+
+    def run_tuner(self, t, params = None, method = Method.STRICT):
         """ Given the type variable and a set of tuning parameters, composes a
         (tuning) optimisation problem corresponding to an approximate sampler
         meant for structures of the given type. Variables are tuned so to
@@ -579,7 +659,12 @@ class Specification:
         Respective variables (including type variables) are decorated with a
         proper 'value'. The method returns the CVXPY solution (i.e. the optimal
         value for the problem, or a string indicating why the problem could not
-        be solved)."""
+        be solved).
+
+        By default, before the tuning procedure begins, certain sanity checks
+        are performed, testing that the input specification matches necessary
+        theoretical premises. It is possible to forcefully disable this
+        behaviour by passing 'Method.JEDI' as the 'method' parameter."""
 
         assert len(self._tuned_variables) > 0,\
                 'No variables with tuning parameters.'
@@ -590,6 +675,15 @@ class Specification:
         # register unfoldable variables
         self._unfold_variables()
 
+        if method != Method.JEDI:
+            # build a variable dependency graph and check if it fits the
+            # theoretical conditions imposed on finite-size tuning.
+            if not self._check_finite_tuner(t):
+                raise ValueError("Not all variables are reachable from "
+                "the target one. Please check for possible specification errors "
+                "or consider reformulating the specification.")
+
+        # check if all variables are reachable from the target one.
         n = self.discharged_variables
         variables = cvxpy.Variable(n)
 
@@ -607,12 +701,11 @@ class Specification:
         problem   = cvxpy.Problem(objective, constraints)
         return self._run_solver(variables, problem, params)
 
-    def run_singular_tuner(self, z, t, params = None):
-        """ Given a (size) variable, target type (to be sampled from), and a
-        set of tuning parameters, composes an optimisation problem
-        corresponding to an approximate sampler meant for structures of the
-        given type. Variables are tuned so to achieve (in expectation) the
-        marked variable frequencies.
+    def run_singular_tuner(self, z, params = None, method = Method.HEURISTIC):
+        """ Given a (size) variable and a set of tuning parameters, composes an
+        optimisation problem corresponding to an approximate sampler meant for
+        structures of the given type. Variables are tuned so to achieve (in
+        expectation) the marked variable frequencies.
 
         Consider the following example:
 
@@ -623,18 +716,29 @@ class Specification:
           >>> params = Params(Type.ALGEBRAIC)
           >>> sp.run_singular_tuner(z, M, params)
 
-        Here, the variable u is marked with a *frequency* 0.4.  The type M
+        Here, the variable u is marked with a *frequency* 0.4. The type M
         represents the type of Motzkin trees, i.e. unary-binary plane trees.
         Variable z marks their size, whereas u marks the occurrences of unary
-        nodes. The tuning goal is to obtain specific values of `z`, `u`, and `M`, such
-        that the induced branching probabilities lead to a sampler which
-        generates, in expectation, Motzkin trees of infinite (i.e. unbounded)
-        size and around 40% of unary nodes.
+        nodes. The tuning goal is to obtain specific values of `z`, `u`, and
+        `M`, such that the induced branching probabilities lead to a sampler
+        which generates, in expectation, Motzkin trees of infinite (i.e.
+        unbounded) size and around 40% of unary nodes.
 
         Respective variables (including type variables) are decorated with a
         proper 'value'. The method returns the CVXPY solution (i.e. the optimal
         value for the problem, or a string indicating why the problem could not
-        be solved)."""
+        be solved).
+
+        By default, before the tuning procedure begins, certain sanity checks
+        are performed, testing that the input specification matches necessary
+        theoretical premises. If these preconditions do not hold, a few
+        heuristic approaches can be exercised by passing Method.HEURISTIC.
+
+        Finally, it is possible to forcefully disable input checks by passing
+        'Method.JEDI' as the 'method' parameter."""
+
+        assert z.tuning_param is None,\
+                'Size parameter cannot be tuned in singular tuning.'
 
         # get some default parameters if none given.
         params = self._init_params(params)
@@ -642,8 +746,35 @@ class Specification:
         # register unfoldable variables
         self._unfold_variables()
 
-        # check theoretical requirements
-        self._check_system(t)
+        # build the variable dependency graph and check if it fits the
+        # theoretical conditions imposed on singular tuning.
+
+        if not method == Method.JEDI:
+
+            # if we can tune the system using singular tuning, do nothing.
+            if not self._check_singular_tuner():
+
+                # otherwise, resort to heuristic checks.
+                candidates = self._candidate_target_variables()
+                if method == Method.HEURISTIC and len(candidates) == 1:
+
+                    v = candidates[0] # target candidate
+                    if self._graph.in_degree(v.idx) == 0:
+
+                        # resort to large-scale finite tuning.
+                        z.tuning_param = 1000000 # TODO: what if z is tuned?
+                        for u in self._tuned_variables:
+                            u.tuning_param = u.tuning_param * z.tuning_param
+
+                        self._tuned_variables.add(z)
+                        return self.run_tuner(candidates[0], params)
+                    else:
+                        pass # try singular sampling
+
+                else:
+                    raise ValueError("The specification cannot be tuned using available heuristics. "
+                    "Please consider using the finite-size tuner with sufficiently large "
+                    "size parameters.")
 
         n = self.discharged_variables
         variables = cvxpy.Variable(n)

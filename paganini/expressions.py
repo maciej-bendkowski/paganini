@@ -241,6 +241,10 @@ class Polynomial:
                 and self._expressions[0].is_constant\
                 and self._expressions[0].coeff == 1
 
+    def is_variable(self):
+        """ Checks if the polynomial represents a single variable."""
+        return len(self._expressions) == 1 and isinstance(self._expressions[0], Variable)
+
     def specification(self, no_variables):
         """ Composes a sparse matrix specification of the polynomial. Requires
         as input a number dictating the number of columns of the constructed
