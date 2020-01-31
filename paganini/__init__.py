@@ -14,7 +14,7 @@ Use
 to see some examples of code usage.
 """
 
-__version__ = "1.2.2"
+__version__ = "1.3.0"
 
 from .expressions import *
 from .specification import *
