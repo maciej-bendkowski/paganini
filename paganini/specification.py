@@ -695,9 +695,13 @@ class Specification:
         if method == Method.STRICT:
             # check theoretical conditions imposed on finite-size tuning.
             if not self._check_finite_tuner(t):
+                unreachable = self._unreachable_nodes(t)
                 raise ValueError("Not all variables are reachable from "
                 "the target one. Please check for possible specification "
-                "errors or consider reformulating the specification.")
+                "errors or consider reformulating the specification. "
+                "Unreachable variables: " + str(unreachable) + ".\n"
+                "Note: indices correspond to variable names, see "
+                "repr(specification).")
 
         n = self.discharged_variables
         variables = cvxpy.Variable(n)

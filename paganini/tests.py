@@ -474,14 +474,13 @@ class MeanTuner(unittest.TestCase):
 
     def test_non_reachable_states(self):
         """ Specification with unreachable states. """
+        spec = Specification()
+        z, T1, T2 = Variable(5000), Variable(), Variable()
+
+        spec.add(T1, 1 + z * T1**2)
+        spec.add(T2, 1 + z * T1**2 + z * T2**3)
 
         with self.assertRaises(ValueError):
-            spec = Specification()
-            z, T1, T2 = Variable(5000), Variable(), Variable()
-
-            spec.add(T1, 1 + z * T1**2)
-            spec.add(T2, 1 + z * T1**2 + z * T2**3)
-
             spec.run_tuner(T1)
 
     def test_non_reachable_states2(self):
