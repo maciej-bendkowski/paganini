@@ -190,9 +190,8 @@ class Params:
 
 class Method(Enum):
     """ Enumeration of supported method flags. See specification.run_singular_tuner."""
-    STRICT       = 1 # disable heuristics
-    HEURISTIC    = 2 # enable heuristics
-    JEDI         = 3 # force method, skipping theoretical checks
+    STRICT       = 1
+    FORCE        = 2 # skip theoretical checks.
 
 class Specification:
     """ Symbolic system specifications."""
@@ -498,7 +497,6 @@ class Specification:
         var.type = VariableType.TYPE # make var a type variable
         self._equations[var] = expression
 
-
         # register variables in the system.
         self._register_variable(var)
         self._register_expressions(expression)
@@ -601,23 +599,44 @@ class Specification:
 
         return solution
 
+    def _inverse_synonym_variables(self):
+        """ For each synonym variable, e.g. T = Seq(2z),
+        includes Seq(2z) -> T in the specification dependency graph. """
+        for v in self._equations:
+            if self._is_synonym_variable(v):
+                w = self._equations[v]._expressions[0]
+                self._add_dependency(v, w)
+                self._add_dependency(w, v)
+
+    def _unreachable_nodes(self, target):
+        """ Given the target variable, constructs the associated dependency
+        graph and returns a list of nodes which cannot be reached from the
+        target one."""
+
+        self._build_dependency_graph()
+
+        all = set(self._graph.nodes)
+        ps = set(nx.shortest_path_length(self._graph,
+                                         source=target.idx))
+
+        return all - ps
+
     def _check_finite_tuner(self, target):
         """ Given the target variable, constructs the associated dependency
-        graph and checks if necessary theoretical conditions for finite-size
-        tuning are met."""
+        graph and checks if all nodes are reachable from the target one."""
 
         self._build_dependency_graph()
-        all = set(self._graph.nodes)
-        reachable = set(nx.shortest_path_length(self._graph,
-                                                source=target.idx).keys())
+        self._inverse_synonym_variables()
 
-        return len(all - reachable) == 0
+        unreachable = self._unreachable_nodes(target)
+        return len(unreachable) == 0
 
-    def _check_singular_tuner(self):
-        """ Constructs the associated dependency graph and checks if
-        necessary theoretical conditions for singular tuning are met."""
+    def _is_strongly_connected(self):
+        """ Checks if the dependency graph is strongly connected. """
 
         self._build_dependency_graph()
+        self._inverse_synonym_variables()
+
         d = dict(nx.shortest_path_length(self._graph))
         for v1 in self._equations:
             for v2 in self._equations:
@@ -626,11 +645,11 @@ class Specification:
 
         return True
 
-    def _candidate_target_variables(self):
+    def _check_singular_tuner(self):
+        """ Constructs the associated dependency graph and checks if it's
+        strongly connected."""
 
-        self._build_dependency_graph()
-        return [v for v in self._equations
-                if self._check_finite_tuner(v)]
+        return self._is_strongly_connected()
 
     def run_tuner(self, t, params = None, method = Method.STRICT):
         """ Given the type variable and a set of tuning parameters, composes a
@@ -662,7 +681,7 @@ class Specification:
         By default, before the tuning procedure begins, certain sanity checks
         are performed, testing that the input specification matches necessary
         theoretical premises. It is possible to forcefully disable this
-        behaviour by passing 'Method.JEDI' as the 'method' parameter."""
+        behaviour by passing 'Method.FORCE' as the 'method' parameter."""
 
         assert len(self._tuned_variables) > 0,\
                 'No variables with tuning parameters.'
@@ -673,15 +692,13 @@ class Specification:
         # register unfoldable variables
         self._unfold_variables()
 
-        if method != Method.JEDI:
-            # build a variable dependency graph and check if it fits the
-            # theoretical conditions imposed on finite-size tuning.
+        if method == Method.STRICT:
+            # check theoretical conditions imposed on finite-size tuning.
             if not self._check_finite_tuner(t):
                 raise ValueError("Not all variables are reachable from "
-                "the target one. Please check for possible specification errors "
-                "or consider reformulating the specification.")
+                "the target one. Please check for possible specification "
+                "errors or consider reformulating the specification.")
 
-        # check if all variables are reachable from the target one.
         n = self.discharged_variables
         variables = cvxpy.Variable(n)
 
@@ -699,7 +716,7 @@ class Specification:
         problem   = cvxpy.Problem(objective, constraints)
         return self._run_solver(variables, problem, params)
 
-    def run_singular_tuner(self, z, params = None, method = Method.HEURISTIC):
+    def run_singular_tuner(self, z, params = None, method = Method.STRICT):
         """ Given a (size) variable and a set of tuning parameters, composes an
         optimisation problem corresponding to an approximate sampler meant for
         structures of the given type. Variables are tuned so to achieve (in
@@ -729,11 +746,8 @@ class Specification:
 
         By default, before the tuning procedure begins, certain sanity checks
         are performed, testing that the input specification matches necessary
-        theoretical premises. If these preconditions do not hold, a few
-        heuristic approaches can be exercised by passing Method.HEURISTIC.
-
-        Finally, it is possible to forcefully disable input checks by passing
-        'Method.JEDI' as the 'method' parameter."""
+        theoretical premises. It is possible to forcefully disable this
+        behaviour by passing 'Method.FORCE' as the 'method' parameter."""
 
         assert z.tuning_param is None,\
                 'Size parameter cannot be tuned in singular tuning.'
@@ -744,35 +758,13 @@ class Specification:
         # register unfoldable variables
         self._unfold_variables()
 
-        # build the variable dependency graph and check if it fits the
-        # theoretical conditions imposed on singular tuning.
-
-        if not method == Method.JEDI:
-
-            # if we can tune the system using singular tuning, do nothing.
+        if method == Method.STRICT:
+            # check theoretical conditions imposed on singular tuning.
             if not self._check_singular_tuner():
-
-                # otherwise, resort to heuristic checks.
-                candidates = self._candidate_target_variables()
-                if method == Method.HEURISTIC and len(candidates) == 1:
-
-                    v = candidates[0] # target candidate
-                    if self._graph.in_degree(v.idx) == 0:
-
-                        # resort to large-scale finite tuning.
-                        z.tuning_param = 1000000 # TODO: what if z is tuned?
-                        for u in self._tuned_variables:
-                            u.tuning_param = u.tuning_param * z.tuning_param
-
-                        self._tuned_variables.add(z)
-                        return self.run_tuner(candidates[0], params)
-                    else:
-                        pass # try singular sampling
-
-                else:
-                    raise ValueError("The specification cannot be tuned using available heuristics. "
-                    "Please consider using the finite-size tuner with sufficiently large "
-                    "size parameters.")
+                raise ValueError("Given specification has not a strongly connected "
+                    "dependency graph. Please check the specification for "
+                    "possible errors, or consider using finite-size "
+                    "tuning for large values of the size parameter.")
 
         n = self.discharged_variables
         variables = cvxpy.Variable(n)

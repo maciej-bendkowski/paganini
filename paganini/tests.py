@@ -66,7 +66,7 @@ class SingularTuner(unittest.TestCase):
         spec.add(L, D + z * L + z * L ** 2)
         spec.add(D, z + z * D)
 
-        spec.run_singular_tuner(z)
+        spec.run_singular_tuner(z, method = Method.FORCE)
 
         self.assertAlmostEqual(z.value, 0.295597742522085)
         self.assertAlmostEqual(L.value, 1.19148788395312)
@@ -79,7 +79,7 @@ class SingularTuner(unittest.TestCase):
         z, L = Variable(), Variable()
         spec.add(L, z * Seq(z) + z * L + z * L ** 2)
 
-        spec.run_singular_tuner(z)
+        spec.run_singular_tuner(z, method = Method.FORCE)
 
         self.assertAlmostEqual(z.value, 0.295597742522085)
         self.assertAlmostEqual(L.value, 1.19148788395312)
@@ -135,7 +135,7 @@ class SingularTuner(unittest.TestCase):
         z, C = Variable(), Variable()
         spec.add(C, Seq(z * Seq(z)))
 
-        spec.run_singular_tuner(z, params)
+        spec.run_singular_tuner(z, params, Method.FORCE)
         self.assertAlmostEqual(z.value, 0.5, 4)
 
     def test_compositions_with_restricted_summands(self):
@@ -143,10 +143,10 @@ class SingularTuner(unittest.TestCase):
             C = SEQ(Z + Z^2). """
 
         spec = Specification()
-        z, C = Variable(), Variable()
+        z, C = Variable(500000), Variable()
         spec.add(C, Seq(z + z**2))
 
-        spec.run_singular_tuner(z)
+        spec.run_tuner(C)
         self.assertAlmostEqual(z.value, 0.618034527351341, 5) # golden ratio
 
     def test_singular_partitions(self):
@@ -165,11 +165,11 @@ class SingularTuner(unittest.TestCase):
     def test_minus_constant(self):
 
         spec = Specification()
-        z, T = Variable(), Variable()
+        z, T = Variable(50000), Variable()
         spec.add(T, Seq(2*z) - 1)
 
-        spec.run_singular_tuner(z)
-        self.assertAlmostEqual(z.value, 0.5, 5)
+        spec.run_tuner(T)
+        self.assertAlmostEqual(z.value, 0.5, 4)
 
     def test_minus_constant2(self):
 
@@ -224,8 +224,8 @@ class SingularTuner(unittest.TestCase):
         z, T = Variable(), Variable()
         spec.add(T, 1 + z * MSet(T, eq(3)))
 
-        # note: Method.JEDI is not necessary here.
-        spec.run_singular_tuner(z, method = Method.JEDI)
+        # note: Method.FORCE is not necessary here.
+        spec.run_singular_tuner(z, method = Method.FORCE)
         self.assertAlmostEqual(z.value, 0.355181762886292, 5)
 
     def test_custom_singular_btrees(self):
@@ -282,8 +282,8 @@ class MeanTuner(unittest.TestCase):
             D = Z + Z * D"""
 
         spec = Specification()
-        z = Variable()     # size
-        u = Variable(0.4)  # abstractions
+        z = Variable(100000)     # size
+        u = Variable(40000)  # abstractions
 
         L, D = Variable(), Variable()
 
@@ -291,11 +291,11 @@ class MeanTuner(unittest.TestCase):
         spec.add(D, z + z * D)
 
         params = Params(Type.ALGEBRAIC)
-        spec.run_singular_tuner(z, params)
+        spec.run_tuner(L, params)
 
-        self.assertAlmostEqual(z.value, 0.244827373512259)
-        self.assertAlmostEqual(u.value, 1.78303233505684)
-        self.assertAlmostEqual(L.value, 1.15073912781323)
+        self.assertAlmostEqual(z.value, 0.244827141130008, 5)
+        self.assertAlmostEqual(u.value, 1.7830323350568, 5)
+        self.assertAlmostEqual(L.value, 1.1507391278132, 4)
 
     def test_cyclic_compositions2(self):
         """ Tuning of bounded cyclic compositions.
@@ -458,11 +458,8 @@ class MeanTuner(unittest.TestCase):
         spec.add(Forest, Seq(Tree))
         spec.add(Tree, z + Tree * Tree)
 
-        spec.run_singular_tuner(z)
-
-        self.assertAlmostEqual(z.value, 0.25, 5)
-        self.assertAlmostEqual(Tree.value, 0.5, 5)
-        self.assertAlmostEqual(Forest.value, 2, 5)
+        with self.assertRaises(ValueError):
+            spec.run_singular_tuner(z)
 
     def test_finite_binary_words(self):
         """ Tuning of binary words.
