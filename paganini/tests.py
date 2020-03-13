@@ -494,8 +494,16 @@ class MeanTuner(unittest.TestCase):
         spec.add(T2, 1 + z * T1**2 + z * T2**3)
 
         spec._check_singular_tuner()
-        spec.run_tuner(T2)
+        problem = spec.run_tuner(T2)
         self.assertAlmostEqual(z.value, 0.112382934442027, 5)
+
+    def test_not_well_founded(self):
+        spec = Specification()
+        z, B = Variable(2000), Variable(100)
+
+        spec.add(B, 1 + B**2)
+        problem = spec.run_tuner(B)
+        self.assertEqual(problem, float("inf"))
 
 class UtilsTuner(unittest.TestCase):
 

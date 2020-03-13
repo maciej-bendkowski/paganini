@@ -594,8 +594,9 @@ class Specification:
                     params.reltol)
 
         # decorate system variables
-        for idx, expr in enumerate(var.value):
-            self._all_variables[idx].value = sympy.exp(expr).evalf()
+        if var.value is not None:
+            for idx, expr in enumerate(var.value):
+                self._all_variables[idx].value = sympy.exp(expr).evalf()
 
         return solution
 
