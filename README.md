@@ -25,7 +25,7 @@ T = Z SEQ(T)
 where `SEQ(T)` stands for a (possibly empty) sequence of trees and `Z` marks the size of a node.
 In Paganini, we write the following snippet defining the same combinatorial class:
 
-```
+```python
 sp = Specification()
 z, T = Variable(), Variable()
 sp.add(T, z * Seq(T))
@@ -38,14 +38,14 @@ compute branching probabilities governing the random choices of our sampler
 value of `Z` should be choose if we are interested in large, uniform, and
 unbounded in size trees? With Paganini, this task amounts to invoking
 
-```
+```python
 sp.run_singular_tuner(z)
 ```
 
 ... and that's it! Paganini determines the corresponding value of `z` for us.
 Once *tuned*, variables are decorated with appropriate numerical values:
 
-```
+```python
 z.value // 0.25
 T.value // 0.5
 ```
@@ -59,7 +59,7 @@ however we would also like to demand that the outcome trees consists of around
 1000 nodes, among which around 200 are unary. To achieve this goal, we construct
 the following specification:
 
-```
+```python
 sp = Specification()
 z, u, M = Variable(1000), Variable(200), Variable()
 sp.add(M, z + u * z * M + z * M ** 2)
