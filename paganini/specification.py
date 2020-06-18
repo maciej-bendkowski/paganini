@@ -522,7 +522,7 @@ class Specification:
             rhs = self._equations[v] # right-hand side.
             matrix, coeffs, constant_term = rhs.specification(n)
 
-            exponents = matrix * variables + coeffs
+            exponents = matrix @ variables + coeffs
             if self._is_synonym_variable(v):
 
                 x = self._equations[v]._expressions[0]
@@ -536,7 +536,7 @@ class Specification:
             xs, rhs = [],  self._msets[v]
             for i, e in enumerate(rhs):
                 matrix, coeffs, constant_term = e.specification(n)
-                exponents = matrix * variables + coeffs
+                exponents = matrix @ variables + coeffs
                 # xs.append(1/(i+1) * cvxpy.exp(cvxpy.sum(exponents)))
                 # cvxpy.sum is not supported in Python2
                 xs.append(1/(i+1) * cvxpy.exp(sum(exponents)))
@@ -550,7 +550,7 @@ class Specification:
             xs, rhs = [],  self._sets[v]
             for i, e in enumerate(rhs):
                 matrix, coeffs, constant_term = e.specification(n)
-                exponents = matrix * variables + coeffs
+                exponents = matrix @ variables + coeffs
                 xs.append(sum(exponents))
 
             constraints.append(variables[v.idx] >= cvxpy.exp(sum(xs)))
@@ -717,7 +717,7 @@ class Specification:
         for v in self._tuned_variables:
             obj[v.idx] = - v.tuning_param
 
-        objective = cvxpy.Minimize(obj * variables)
+        objective = cvxpy.Minimize(obj @ variables.T)
         problem   = cvxpy.Problem(objective, constraints)
         return self._run_solver(variables, problem, params)
 
@@ -789,6 +789,6 @@ class Specification:
         for v in self._tuned_variables:
             obj[v.idx] = v.tuning_param
 
-        objective = cvxpy.Maximize(obj * variables)
+        objective = cvxpy.Maximize(obj @ variables.T)
         problem   = cvxpy.Problem(objective, constraints)
         return self._run_solver(variables, problem, params)
