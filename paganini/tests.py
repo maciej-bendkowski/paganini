@@ -1,11 +1,11 @@
 import unittest
 
-from paganini.utils import *
 from paganini.expressions import *
 from paganini.specification import *
+from paganini.utils import *
+
 
 class SingularTuner(unittest.TestCase):
-
     def test_singular_btrees(self):
         """ Singular tuning of binary trees
             B = 1 + Z * B^2."""
@@ -17,6 +17,7 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.25)
         self.assertAlmostEqual(B.value, 2)
+        self.assertGreater(len(spec.ddg(B)), 0)
 
     def test_singular_motzkin_trees(self):
         """ Singular tuning of Motzkin trees
@@ -24,12 +25,17 @@ class SingularTuner(unittest.TestCase):
 
         spec = Specification()
         z, M = Variable(), Variable()
-        spec.add(M, z * Seq(M, leq(2)))
+
+        seqM = Seq(M, leq(2))
+        spec.add(M, z * seqM)
 
         spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.333333333333334)
         self.assertAlmostEqual(M.value, 1.0)
+
+        self.assertEqual(len(spec.ddg(M)), 0)
+        self.assertGreater(len(spec.ddg(seqM)), 0)
 
     def test_singular_motzkin_trees2(self):
         """ Singular tuning of Motzkin trees
@@ -44,18 +50,25 @@ class SingularTuner(unittest.TestCase):
         self.assertAlmostEqual(z.value, 0.333333333333334)
         self.assertAlmostEqual(M.value, 1.0)
 
+        self.assertGreater(len(spec.ddg(M)), 0)
+
     def test_singular_trees(self):
         """ Singular tuning of plane trees
             T = Z * SEQ(T)."""
 
         spec = Specification()
         z, T = Variable(), Variable()
-        spec.add(T, z * Seq(T))
+
+        seqT = Seq(T)
+        spec.add(T, z * seqT)
 
         spec.run_singular_tuner(z)
 
         self.assertAlmostEqual(z.value, 0.25)
         self.assertAlmostEqual(T.value, 0.5)
+
+        self.assertEqual(len(spec.ddg(T)), 0)
+        self.assertGreater(len(spec.ddg(seqT)), 0)
 
     def test_singular_lambda_terms(self):
         """ Singular tuning of plain lambda terms
@@ -66,10 +79,13 @@ class SingularTuner(unittest.TestCase):
         spec.add(L, D + z * L + z * L ** 2)
         spec.add(D, z + z * D)
 
-        spec.run_singular_tuner(z, method = Method.FORCE)
+        spec.run_singular_tuner(z, method=Method.FORCE)
 
         self.assertAlmostEqual(z.value, 0.295597742522085)
         self.assertAlmostEqual(L.value, 1.19148788395312)
+
+        self.assertGreater(len(spec.ddg(L)), 0)
+        self.assertGreater(len(spec.ddg(D)), 0)
 
     def test_singular_lambda_terms2(self):
         """ Singular tuning of plain lambda terms
@@ -79,10 +95,12 @@ class SingularTuner(unittest.TestCase):
         z, L = Variable(), Variable()
         spec.add(L, z * Seq(z) + z * L + z * L ** 2)
 
-        spec.run_singular_tuner(z, method = Method.FORCE)
+        spec.run_singular_tuner(z, method=Method.FORCE)
 
         self.assertAlmostEqual(z.value, 0.295597742522085)
         self.assertAlmostEqual(L.value, 1.19148788395312)
+
+        self.assertGreater(len(spec.ddg(L)), 0)
 
     def test_singular_polya_trees(self):
         """ Singular tuning of Polya trees
@@ -90,28 +108,38 @@ class SingularTuner(unittest.TestCase):
 
         spec = Specification()
         z, T = Variable(200000), Variable()
-        spec.add(T, z * MSet(T))
+
+        msetT = MSet(T)
+        spec.add(T, z * msetT)
 
         spec.run_tuner(T)
 
         self.assertAlmostEqual(z.value, 0.338322112871298, 5)
         self.assertAlmostEqual(T.value, 0.999993919977244)
 
+        self.assertEqual(len(spec.ddg(T)), 0)
+        self.assertGreater(len(spec.ddg(msetT)), 0)
+
     def test_singular_custom_trees(self):
         """ Singular tuning of some custom trees defined by
             T = Z + Z * SEQ_>=2(T)."""
 
         params = Params(Type.ALGEBRAIC)
-        params.max_iters = 100 # required
+        params.max_iters = 100  # required
 
         spec = Specification()
         z, T = Variable(), Variable()
-        spec.add(T, z + z * Seq(T, geq(2)))
+        seqT = Seq(T, geq(2))
+        spec.add(T, z + z * seqT)
 
         spec.run_singular_tuner(z, params)
 
         self.assertAlmostEqual(z.value, 0.333333333333335)
         self.assertAlmostEqual(T.value, 0.499999999999993)
+
+        # note: = seq(T)_{>=2} = T^2 Seq(T)
+        self.assertGreater(len(spec.ddg(T)), 0)
+        self.assertEqual(len(spec.ddg(seqT)), 0)
 
     def test_binary_words(self):
         """ Singular tuning of binary words.
@@ -119,24 +147,32 @@ class SingularTuner(unittest.TestCase):
 
         spec = Specification()
         z, B = Variable(), Variable()
-        spec.add(B, Seq(z + z))
+        seqZ = Seq(z + z)
+        spec.add(B, seqZ)
 
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.5, 5)
+
+        self.assertEqual(len(spec.ddg(seqZ)), 0)  # note: trivial distribution.
+        self.assertEqual(len(spec.ddg(B)), 0)
 
     def test_compositions(self):
         """ Singular tuning of all compositions.
             C = SEQ(Z * SEQ(Z)). """
 
         params = Params(Type.RATIONAL)
-        params.max_iters = 10000 # required
+        params.max_iters = 10000  # required
 
         spec = Specification()
         z, C = Variable(), Variable()
-        spec.add(C, Seq(z * Seq(z)))
+        seq = Seq(z * Seq(z))
+        spec.add(C, seq)
 
         spec.run_singular_tuner(z, params, Method.FORCE)
         self.assertAlmostEqual(z.value, 0.5, 4)
+
+        self.assertEqual(len(spec.ddg(C)), 0)
+        self.assertGreater(len(spec.ddg(seq)), 0)
 
     def test_compositions_with_restricted_summands(self):
         """ Singular tuning of compositions with restricted summands in {1,2}.
@@ -144,10 +180,10 @@ class SingularTuner(unittest.TestCase):
 
         spec = Specification()
         z, C = Variable(500000), Variable()
-        spec.add(C, Seq(z + z**2))
+        spec.add(C, Seq(z + z ** 2))
 
         spec.run_tuner(C)
-        self.assertAlmostEqual(z.value, 0.618034527351341, 5) # golden ratio
+        self.assertAlmostEqual(z.value, 0.618034527351341, 5)  # golden ratio
 
     def test_singular_partitions(self):
         """ Singular tuning of partitions
@@ -157,16 +193,20 @@ class SingularTuner(unittest.TestCase):
 
         spec = Specification()
         z, P = Variable(200000), Variable()
-        spec.add(P, MSet(z * Seq(z)))
+        mset = MSet(z * Seq(z))
+        spec.add(P, mset)
 
         spec.run_tuner(P, params)
         self.assertAlmostEqual(z.value, 0.997247023094167, 5)
+
+        self.assertEqual(len(spec.ddg(P)), 0)
+        self.assertEqual(len(spec.ddg(mset)), 0)  # note: trivial distribution
 
     def test_minus_constant(self):
 
         spec = Specification()
         z, T = Variable(50000), Variable()
-        spec.add(T, Seq(2*z) - 1)
+        spec.add(T, Seq(2 * z) - 1)
 
         spec.run_tuner(T)
         self.assertAlmostEqual(z.value, 0.5, 4)
@@ -193,6 +233,8 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.148148148148149, 5)
 
+        self.assertGreater(len(spec.ddg(T)), 0)
+
     def test_otter_trees(self):
         """ Singular Otter trees.
             T = 1 + Z * MSet_{ = 2}(T)."""
@@ -210,6 +252,8 @@ class SingularTuner(unittest.TestCase):
         spec.run_tuner(T)
         self.assertAlmostEqual(z.value, 0.4026975, 5)
 
+        self.assertGreater(len(spec.ddg(T)), 0)
+
     def test_otter_trees2(self):
         """ Singular Otter trees.
             T = 1 + Z * MSet_{ = 3}(T)."""
@@ -225,8 +269,10 @@ class SingularTuner(unittest.TestCase):
         spec.add(T, 1 + z * MSet(T, eq(3)))
 
         # note: Method.FORCE is not necessary here.
-        spec.run_singular_tuner(z, method = Method.FORCE)
+        spec.run_singular_tuner(z, method=Method.FORCE)
         self.assertAlmostEqual(z.value, 0.355181762886292, 5)
+
+        self.assertGreater(len(spec.ddg(T)), 0)
 
     def test_custom_singular_btrees(self):
         """ Singular, custom btrees."""
@@ -238,8 +284,10 @@ class SingularTuner(unittest.TestCase):
         spec.run_singular_tuner(z)
         self.assertAlmostEqual(z.value, 0.249999999878295, 5)
 
-class MeanTuner(unittest.TestCase):
+        self.assertGreater(len(spec.ddg(T)), 0)
 
+
+class MeanTuner(unittest.TestCase):
     def test_motzkin_trees(self):
         """ Tuning of Motzkin trees
             M = Z + Z * M + Z * M ** 2.
@@ -255,15 +303,17 @@ class MeanTuner(unittest.TestCase):
         self.assertAlmostEqual(z.value, 0.333333083333287)
         self.assertAlmostEqual(M.value, 0.998501123876053)
 
+        self.assertGreater(len(spec.ddg(M)), 0)
+
     def test_lambda_terms(self):
         """ Tuning of lambda terms
             L = D + Z * L + Z * L ** 2
             D = Z + Z * D"""
 
         spec = Specification()
-        z = Variable(10000) # size
+        z = Variable(10000)  # size
         v = Variable(3120)  # variables
-        u = Variable(312)   # successors
+        u = Variable(312)  # successors
 
         L, D = Variable(), Variable()
 
@@ -276,13 +326,16 @@ class MeanTuner(unittest.TestCase):
         self.assertAlmostEqual(z.value, 0.356007431874485)
         self.assertAlmostEqual(L.value, 0.904320092780514)
 
+        self.assertGreater(len(spec.ddg(L)), 0)
+        self.assertGreater(len(spec.ddg(D)), 0)
+
     def test_lambda_terms2(self):
         """ Tuning of lambda terms
             L = D + Z * L + Z * L ** 2
             D = Z + Z * D"""
 
         spec = Specification()
-        z = Variable(100000)     # size
+        z = Variable(100000)  # size
         u = Variable(40000)  # abstractions
 
         L, D = Variable(), Variable()
@@ -297,16 +350,22 @@ class MeanTuner(unittest.TestCase):
         self.assertAlmostEqual(u.value, 1.7830323350568, 5)
         self.assertAlmostEqual(L.value, 1.1507391278132, 4)
 
+        self.assertGreater(len(spec.ddg(L)), 0)
+        self.assertGreater(len(spec.ddg(D)), 0)
+
     def test_cyclic_compositions2(self):
         """ Tuning of bounded cyclic compositions.
             C = CYC_{= 12}(Z * SEQ(Z))."""
 
         spec = Specification()
         z, C = Variable(20), Variable()
-        spec.add(C, UCyc(z * Seq(z), eq(12)))
+        ucyc = UCyc(z * Seq(z), eq(12))
+        spec.add(C, ucyc)
 
         spec.run_tuner(C)
         self.assertAlmostEqual(z.value, 0.405765659263783, 5)
+
+        self.assertGreater(len(spec.ddg(ucyc)), 0)
 
     def test_urns(self):
         """ Tuning of urns.
@@ -314,10 +373,13 @@ class MeanTuner(unittest.TestCase):
 
         spec = Specification()
         z, U = Variable(18), Variable()
-        spec.add(U, Set(2 * z))
+        setz = Set(2 * z)
+        spec.add(U, setz)
 
         spec.run_tuner(U)
         self.assertAlmostEqual(z.value, 9, 5)
+
+        self.assertEqual(len(spec.ddg(setz)), 0)  # note: trivial distribution
 
     def test_seq_urns2(self):
         """ Tuning of sequences of bounded urns.
@@ -336,10 +398,13 @@ class MeanTuner(unittest.TestCase):
 
         spec = Specification()
         z, C = Variable(10), Variable()
-        spec.add(C, Cyc(z))
+        cycz = Cyc(z)
+        spec.add(C, cycz)
 
         spec.run_tuner(C)
         self.assertAlmostEqual(z.value, 1.12975951282490, 5)
+
+        self.assertGreater(len(spec.ddg(cycz)), 0)
 
     def test_alignments(self):
         """ Tuning of alignments.
@@ -399,7 +464,7 @@ class MeanTuner(unittest.TestCase):
 
         spec = Specification()
         z, A, = Variable(1024), Variable()
-        U, P  = Variable(), Variable()
+        U, P = Variable(), Variable()
 
         spec.add(A, U * P)
         spec.add(U, Set(z))
@@ -477,8 +542,8 @@ class MeanTuner(unittest.TestCase):
         spec = Specification()
         z, T1, T2 = Variable(5000), Variable(), Variable()
 
-        spec.add(T1, 1 + z * T1**2)
-        spec.add(T2, 1 + z * T1**2 + z * T2**3)
+        spec.add(T1, 1 + z * T1 ** 2)
+        spec.add(T2, 1 + z * T1 ** 2 + z * T2 ** 3)
 
         with self.assertRaises(ValueError):
             spec.run_tuner(T1)
@@ -490,8 +555,8 @@ class MeanTuner(unittest.TestCase):
         spec = Specification()
         z, T1, T2 = Variable(100000), Variable(), Variable()
 
-        spec.add(T1, 1 + z * T1**2)
-        spec.add(T2, 1 + z * T1**2 + z * T2**3)
+        spec.add(T1, 1 + z * T1 ** 2)
+        spec.add(T2, 1 + z * T1 ** 2 + z * T2 ** 3)
 
         spec._check_singular_tuner()
         problem = spec.run_tuner(T2)
@@ -501,12 +566,12 @@ class MeanTuner(unittest.TestCase):
         spec = Specification()
         z, B = Variable(2000), Variable(100)
 
-        spec.add(B, 1 + B**2)
+        spec.add(B, 1 + B ** 2)
         problem = spec.run_tuner(B)
         self.assertEqual(problem, float("inf"))
 
-class UtilsTuner(unittest.TestCase):
 
+class UtilsTuner(unittest.TestCase):
     def test_partition_sequences(self):
         """ Checks that each of the generated partition-sequences
         has proper length and structure (sums up to its length)."""
@@ -521,8 +586,8 @@ class UtilsTuner(unittest.TestCase):
 
                 self.assertEqual(total, n)
 
-class ExpressionsTest(unittest.TestCase):
 
+class ExpressionsTest(unittest.TestCase):
     def assertExprEqual(self, x, y):
         self.assertIsInstance(x, Expr)
         self.assertIsInstance(y, Expr)
@@ -554,5 +619,6 @@ class ExpressionsTest(unittest.TestCase):
         py = Polynomial.cast(x + 2 * x)
         self.assertFalse(py.is_variable())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

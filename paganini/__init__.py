@@ -14,10 +14,10 @@ Use
 to see some examples of code usage.
 """
 
-__version__ = "1.3.3"
+__version__ = "1.4.0"
+
+import paganini.tests
+import paganini.tutorial
 
 from .expressions import *
 from .specification import *
-
-import paganini.tutorial
-import paganini.tests

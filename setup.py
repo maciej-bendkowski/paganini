@@ -1,19 +1,15 @@
-import os
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
-    name = "paganini",
-    version = "1.3.3",
-
-    author = "Maciej Bendkowski, Sergey Dovgal",
-    author_email = "maciej.bendkowski@tcs.uj.edu.pl, vit.north@gmail.com",
-    description = "Multiparametric tuner for combinatorial specifications",
-
-    license = "BSD3",
-    url = "https://github.com/maciej-bendkowski/paganini",
-    install_requires = ['numpy', 'sympy', 'cvxpy', 'scipy', 'networkx'],
-    packages = find_packages(),
-
+    name="paganini",
+    version="1.4.0",
+    author="Maciej Bendkowski, Sergey Dovgal",
+    author_email="maciej.bendkowski@tcs.uj.edu.pl, vit.north@gmail.com",
+    description="Multiparametric tuner for combinatorial specifications",
+    license="BSD3",
+    url="https://github.com/maciej-bendkowski/paganini",
+    install_requires=["numpy", "sympy", "cvxpy", "scipy", "networkx", "optas"],
+    packages=find_packages(),
     # unit tests
-    test_suite = 'paganini.tests'
+    test_suite="paganini.tests",
 )
