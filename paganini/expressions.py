@@ -1,17 +1,18 @@
-import sympy
-import numpy as np
-
-from enum import Enum
-from scipy import sparse
 from collections import Counter
+from enum import Enum
 
-__all__ = ('Expr', 'VariableType', 'Variable', 'Polynomial')
+import numpy as np
+import sympy
+from scipy import sparse
+
+__all__ = ("Expr", "VariableType", "Variable", "Polynomial")
+
 
 class Expr(object):
     """ Algebraic expressions (multivariate monomials) in form of
         :math:`c x_1^{k_1} x_2^{k_2} \cdots x_m^{k_m}.`"""
 
-    def __init__(self, coeff = 1, variables = Counter()):
+    def __init__(self, coeff=1, variables=Counter()):
         self.variables = variables
         self.coeff = coeff
 
@@ -26,13 +27,15 @@ class Expr(object):
 
     def __add__(self, other):
         """ Expression addition."""
-        return Polynomial(self) + other # lift to polynomials.
+        return Polynomial(self) + other  # lift to polynomials.
 
-    __radd__ = __add__ # make addition commute again
+    def __radd__(self, other):
+        # Note: Keep the original order of summands.
+        return other + Polynomial(self)  # lift to polynomials.
 
     def __sub__(self, other):
         """ Expression subtraction."""
-        return Polynomial(self) - other # lift to polynomials.
+        return Polynomial(self) - other  # lift to polynomials.
 
     def __mul__(self, other):
         """ Multiplication of algebraic expressions."""
@@ -45,25 +48,28 @@ class Expr(object):
         x, y = Counter(self.variables), Counter(other.variables)
         return Expr(self.coeff * other.coeff, x + y)
 
-    __rmul__ = __mul__ # make multiplication commute again.
+    __rmul__ = __mul__  # make multiplication commute again.
 
     def __pow__(self, n):
         """ Expression exponentiation."""
-        assert n >= 0, 'negative exponent.'
+        assert n >= 0, "negative exponent."
 
         if n == 0:
             return Expr(coeff=1, variables=Counter())
 
         xs = Counter(self.variables)
         for v in self.variables:
-            xs[v] *= n # (a^b)^c = a^(b * c)
+            xs[v] *= n  # (a^b)^c = a^(b * c)
 
         return Expr(self.coeff ** n, xs)
 
     def __repr__(self):
-        monic_monomial = ' '.join([
+        monic_monomial = " ".join(
+            [
                 variable.__repr__() + "^" + str(self.variables[variable])
-                for variable in self.variables])
+                for variable in self.variables
+            ]
+        )
 
         if self.coeff == 1 and len(monic_monomial) > 0:
             return monic_monomial
@@ -81,21 +87,29 @@ class Expr(object):
         """ True iff the expression represents a constant."""
         return len(self.variables) == 0
 
+    @property
+    def weight(self):
+        return self.coeff * np.prod(
+            [variable.value ** self.variables[variable] for variable in self.variables]
+        )
+
+
 class VariableType(Enum):
-    PLAIN = 1 # regular, plain variables, e.g. Z.
-    TYPE  = 2 # variables corresponding to some types, i.e. having definitions.
+    PLAIN = 1  # regular, plain variables, e.g. Z.
+    TYPE = 2  # variables corresponding to some types, i.e. having definitions.
+
 
 class Variable(Expr):
     """ Symbolic variables."""
 
-    def __init__(self, tuning_param = None):
+    def __init__(self, tuning_param=None):
         super(Variable, self).__init__(1, Counter())
 
         self.variables[self] = 1
-        self.type  = VariableType.PLAIN
+        self.type = VariableType.PLAIN
         self.tuning_param = tuning_param
 
-        self.idx   = None
+        self.idx = None
         self.value = None
 
     @property
@@ -112,6 +126,7 @@ class Variable(Expr):
     def set_expectation(self, tuning_param):
         self.tuning_param = tuning_param
 
+
 class Polynomial:
     """ Polynomials of multivariate algebraic expressions."""
 
@@ -124,7 +139,7 @@ class Polynomial:
     @staticmethod
     def cast(other):
         """ Casts its input to a polynomial."""
-        if isinstance(other, (int,float)):
+        if isinstance(other, (int, float)):
             return Polynomial([Expr(other)])
 
         elif not isinstance(other, Polynomial):
@@ -162,7 +177,7 @@ class Polynomial:
             for expr in eqv:
                 coeff += expr.coeff
 
-            if coeff != 0: # ignore vacuous terms
+            if coeff != 0:  # ignore vacuous terms
                 expr = Expr(coeff, eqv[0].variables)
                 simpl_expressions.append(expr)
 
@@ -186,11 +201,14 @@ class Polynomial:
         other = Polynomial.cast(other)
         return Polynomial.simplify(self._expressions + other._expressions)
 
-    __radd__ = __add__ # make addition commute again
+    def __radd__(self, other):
+        # Note: Keep the original order of summands.
+        other = Polynomial.cast(other)
+        return Polynomial.simplify(other._expressions + self._expressions)
 
     def __sub__(self, other):
         """ Polynomial subtraction."""
-        if isinstance(other, (int,float)):
+        if isinstance(other, (int, float)):
             return self + (-other)
 
         other = Polynomial.cast(other)
@@ -201,18 +219,18 @@ class Polynomial:
         """ Naive polynomial multiplication."""
         other = Polynomial.cast(other)
 
-        outcome = [] # naive but works
+        outcome = []  # naive but works
         for a in self._expressions:
             for b in other._expressions:
                 outcome.append(a * b)
 
         return Polynomial.simplify(outcome)
 
-    __rmul__ = __mul__ # make multiplication commute again
+    __rmul__ = __mul__  # make multiplication commute again
 
     def __pow__(self, n):
         """ Naive polynomial exponentiation."""
-        assert n >= 0, 'Non-positive exponent.'
+        assert n >= 0, "Non-positive exponent."
 
         if n == 0:
             return Polynomial(Expr(1))
@@ -230,20 +248,26 @@ class Polynomial:
         return iter(self._expressions)
 
     def __repr__(self):
-        return ' + '.join([
-            expression.__repr__()
-            for expression in self._expressions
-        ])
+        return " + ".join([expression.__repr__() for expression in self._expressions])
 
     def is_one(self):
         """ Checks if the polynomial represents a constant one."""
-        return len(self._expressions) == 1\
-                and self._expressions[0].is_constant\
-                and self._expressions[0].coeff == 1
+        return (
+            len(self._expressions) == 1
+            and self._expressions[0].is_constant
+            and self._expressions[0].coeff == 1
+        )
 
     def is_variable(self):
         """ Checks if the polynomial represents a single variable."""
-        return len(self._expressions) == 1 and isinstance(self._expressions[0], Variable)
+        return len(self._expressions) == 1 and isinstance(
+            self._expressions[0], Variable
+        )
+
+    @property
+    def is_non_trivial(self):
+        xs = [expr for expr in self._expressions if not expr.is_constant]
+        return len(xs) > 1
 
     def specification(self, no_variables):
         """ Composes a sparse matrix specification of the polynomial. Requires
@@ -259,18 +283,18 @@ class Polynomial:
 
         The matrix represents expoenents of respective variables."""
 
-        rows = 0 # row counter
-        row, col, data =  [], [], []
+        rows = 0  # row counter
+        row, col, data = [], [], []
         constant_expr = 0
         coeffs = []
 
         for exp in self:
             if isinstance(exp, Expr):
                 if exp.coeff <= 0 and not exp.is_constant:
-                    raise ValueError('Non-positive monomial coefficient.')
+                    raise ValueError("Non-positive monomial coefficient.")
 
                 if exp.coeff > 0:
-                    #coeffs.append(sympy.log(exp.coeff))
+                    # coeffs.append(sympy.log(exp.coeff))
                     coeffs.append(np.float64((sympy.log(exp.coeff)).evalf()))
                 else:
                     constant_expr += exp.coeff
@@ -281,12 +305,17 @@ class Polynomial:
                     data.append(e)
                 rows += 1
             else:
-                constant_expr += exp # constant
+                constant_expr += exp  # constant
 
         # create a sparse representation of the polynomial,
         # together with logarithms of respective monomial coefficients and
         # the collected constant term (unaltered).
-        return (sparse.csr_matrix((np.array(data),
-            (np.array(row),np.array(col))), shape=(rows, no_variables),
-            dtype='double'),
-            np.array(coeffs), constant_expr)
+        return (
+            sparse.csr_matrix(
+                (np.array(data), (np.array(row), np.array(col))),
+                shape=(rows, no_variables),
+                dtype="double",
+            ),
+            np.array(coeffs),
+            constant_expr,
+        )
