@@ -890,6 +890,13 @@ class Specification:
         # make sure that the distribution sums up to one.
         (num, denum) = sum(fractions).as_integer_ratio()
         fractions[-1] += Fraction(denum - num, denum)
+
+        for x in fractions:
+            if x < Fraction(0, 1):
+                raise ValueError(
+                    "The distribution associated with the given variable contains negative components."
+                )
+
         return fractions
 
     def approx_discrete_distribution(self, variable, precision=32, kernel="hellinger"):
