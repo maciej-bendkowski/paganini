@@ -1,9 +1,9 @@
 # Paganini
-Paganini is a lightweight python library meant for the purpose of helping with
-the design of combinatorial samplers. Given a combinatorial specification,
-expressed using a domain-specific language closely resembling Flajolet and
-Sedgewick's *symbolic method*, Paganini gives its users some additional control
-over the distribution of structures constructed using the designed samplers.
+Paganini is a lightweight python library meant to help with the design of
+combinatorial samplers. Given a combinatorial specification, expressed using a
+domain-specific language closely resembling Flajolet and Sedgewick's *symbolic
+method*, Paganini gives its users some additional control over the distribution
+of structures constructed using the designed samplers.
 
 ### Citing Paganini
 If you use Paganini or its components for published work, we encourage you to
@@ -15,7 +15,7 @@ cite the accompanying paper:
 
 ### Introduction
 
-Consider the following example. Suppose that we are interested in designing an
+Consider the following example. Suppose that we are interested in designing a
 sampler for plane trees of unbounded degree (i.e. with an arbitrary number of
 children), specified as
 
