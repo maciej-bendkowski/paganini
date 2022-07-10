@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="paganini",
-    version="1.4.0",
+    version="1.5.0",
     author="Maciej Bendkowski, Sergey Dovgal",
     author_email="maciej.bendkowski@tcs.uj.edu.pl, vit.north@gmail.com",
     description="Multiparametric tuner for combinatorial specifications",

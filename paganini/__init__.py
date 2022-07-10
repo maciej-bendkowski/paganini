@@ -14,7 +14,7 @@ Use
 to see some examples of code usage.
 """
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 import paganini.tests
 import paganini.tutorial
