@@ -7,10 +7,11 @@ of structures constructed using the designed samplers.
 
 ### Citing Paganini
 If you use Paganini or its components for published work, we encourage you to
-cite the accompanying paper:
+cite the accompanying papers:
 
 *Maciej Bendkowski, Olivier Bodini, Sergey Dovgal*
 
+[Tuning as convex optimisation: a polynomial tuner for multi-parametric combinatorial samplers](https://www.cambridge.org/core/journals/combinatorics-probability-and-computing/article/abs/tuning-as-convex-optimisation-a-polynomial-tuner-for-multiparametric-combinatorial-samplers/2A79BF69E8CC80011E6AADF81BFC0291)
 [Polynomial tuning of multiparametric combinatorial samplers](https://epubs.siam.org/doi/10.1137/1.9781611975062.9)
 
 ### Introduction
