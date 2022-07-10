@@ -120,6 +120,10 @@ class SingularTuner(unittest.TestCase):
         self.assertEqual(len(spec.ddg(T)), 0)
         self.assertGreater(len(spec.ddg(msetT)), 0)
 
+        diags = spec.diagonals()
+        self.assertGreater(len(diags[T]), 0)
+        self.assertAlmostEqual(diags[T][1].value, T.value)
+
     def test_singular_custom_trees(self):
         """ Singular tuning of some custom trees defined by
             T = Z + Z * SEQ_>=2(T)."""
@@ -169,10 +173,10 @@ class SingularTuner(unittest.TestCase):
         spec.add(C, seq)
 
         spec.run_singular_tuner(z, params, Method.FORCE)
-        self.assertAlmostEqual(z.value, 0.5, 4)
+        self.assertAlmostEqual(z.value, 0.5, 3)
 
         self.assertEqual(len(spec.ddg(C)), 0)
-        self.assertGreater(len(spec.ddg(seq)), 0)
+        self.assertEqual(len(spec.ddg(seq)), 0)
 
     def test_compositions_with_restricted_summands(self):
         """ Singular tuning of compositions with restricted summands in {1,2}.

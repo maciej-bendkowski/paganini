@@ -264,6 +264,20 @@ class Specification:
 
         self._series_truncate = series_truncate
 
+    def diagonals(self):
+        """ Map from Pólya variables to their "diagonals".
+        For instance,
+
+        >>> T, z = Variable(), Variable()
+        >>> spec = Specification()
+        >>> spec.add(T, z * MSet(T))
+        >>> spec.run_singular_tuner(z, method=Method.FORCE)
+
+        >>> for j, var in spec.diagonals()[T].items():
+        >>>     print(f"T(z^{j}) = {var.value}")
+        """
+        return self._diag
+
     def __repr__(self):
         return "\n".join(
             [
